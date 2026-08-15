@@ -1,0 +1,7 @@
+node_modules/
+.expo/
+.idea/
+*.log
+dist/
+internal/
+*.iml

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Build vitest-expo
+        run: npm run build --workspace vitest-expo
+      - name: Typecheck example app
+        run: npm run typecheck --workspace app
+      - name: Conformance — Vitest (iOS)
+        run: npm run test:vitest --workspace app
+      - name: Conformance — Vitest (Android)
+        run: npm run test:vitest:android --workspace app
+      - name: Conformance — jest-expo reference
+        run: npm run test:jest --workspace app
+
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace vitest-expo
+      - name: Validate publishable artifact
+        run: npm pack --workspace vitest-expo --dry-run

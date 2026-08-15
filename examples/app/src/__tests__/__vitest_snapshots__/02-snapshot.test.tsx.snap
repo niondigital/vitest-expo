@@ -1,0 +1,42 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`snapshot testing > matches component tree snapshot 1`] = `
+<View
+  accessibilityRole="summary"
+  style={
+    {
+      "borderRadius": 8,
+      "padding": 12,
+    }
+  }
+>
+  <Text
+    accessible={true}
+    style={
+      {
+        "color": "#333",
+        "fontSize": 14,
+        "overflow": "hidden",
+      }
+    }
+  >
+    Snapshot me
+  </Text>
+  <View
+    accessibilityRole="button"
+    accessible={true}
+    focusable={true}
+  >
+    <Text
+      accessible={true}
+      style={
+        {
+          "overflow": "hidden",
+        }
+      }
+    >
+      Tap
+    </Text>
+  </View>
+</View>
+`;

@@ -1,0 +1,18 @@
+{
+  "name": "vitest-expo-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "examples/app"
+  ],
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-test-renderer": "19.2.3"
+  },
+  "scripts": {
+    "build": "npm run build --workspace vitest-expo",
+    "test": "npm run build --workspace vitest-expo && npm run test --workspace app"
+  }
+}
