@@ -13,11 +13,13 @@ type ReactNativeOptions = NonNullable<Parameters<typeof reactNative>[0]>;
 
 export interface VitestExpoOptions {
   /**
-   * Platform the test run simulates, analogous to jest-expo/ios vs jest-expo/android.
-   * Drives platform-extension resolution (.ios.tsx / .android.tsx), Platform.OS and
-   * the EXPO_OS environment variable that babel-preset-expo would inline in an app build.
+   * Platform the test run simulates, analogous to jest-expo/ios, /android and
+   * /web. Drives platform-extension resolution (.ios.tsx / .web.tsx),
+   * Platform.OS and the EXPO_OS environment variable that babel-preset-expo
+   * would inline in an app build. 'web' runs react-native-web in jsdom — no
+   * native engine involved.
    */
-  platform?: 'ios' | 'android';
+  platform?: 'ios' | 'android' | 'web';
   /** Escape hatch: options forwarded verbatim to vitest-native's reactNative() plugin. */
   reactNative?: Omit<ReactNativeOptions, 'platform'>;
   /**
@@ -49,6 +51,11 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   const platform = options.platform ?? 'ios';
   const jestCompat = options.jestCompat ?? true;
   const transformPackages = options.transformPackages ?? [];
+
+  if (platform === 'web') {
+    return webPlugins(jestCompat);
+  }
+
   const rn = reactNative({
     // Everything vitest-expo layers on (globalThis.expo, real Expo package JS,
     // the native-module registry) assumes real React Native — the pure-JS mock
@@ -181,6 +188,75 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   };
 
   return [rn, ...(jestCompat ? [jestMockTransform()] : []), jsxInJsPlugin, expoPlugin].flat();
+}
+
+/**
+ * The web platform, analogous to jest-expo/web: react-native-web in jsdom.
+ * There is no native boundary on web — Expo packages resolve their .web
+ * variants (plain JS) — so the native engine and module layer stay out
+ * entirely; what remains is aliasing, web-first extension resolution and a
+ * small runtime setup.
+ */
+function webPlugins(jestCompat: boolean): Plugin[] {
+  const webPlugin: Plugin = {
+    name: 'vitest-expo:web',
+    config(userConfig) {
+      const root = userConfig.root ?? process.cwd();
+      const existing = normalizeSetupFiles((userConfig as any).test?.setupFiles);
+      (userConfig as any).test = {
+        ...(userConfig as any).test,
+        setupFiles: [
+          ...(jestCompat ? [jestCompatSetup] : []),
+          'vitest-expo/setup-web',
+          ...existing,
+        ],
+      };
+      return {
+        resolve: {
+          alias: [
+            { find: /^react-native$/, replacement: 'react-native-web' },
+            ...(jestCompat
+              ? Object.entries(jestCompatAliases()).map(([find, replacement]) => ({
+                  find,
+                  replacement,
+                }))
+              : []),
+          ],
+          // Metro's web resolution order: platform extension first.
+          extensions: [
+            '.web.tsx',
+            '.web.ts',
+            '.web.jsx',
+            '.web.js',
+            '.tsx',
+            '.ts',
+            '.jsx',
+            '.js',
+            '.mjs',
+            '.json',
+          ],
+        },
+        test: {
+          environment: 'jsdom',
+          server: {
+            deps: {
+              // Externalized packages require('react-native') through Node,
+              // bypassing the react-native-web alias — keep the RN ecosystem
+              // in the Vite graph so the alias applies everywhere.
+              inline: [/react-native/, /@react-native/, /@testing-library/, /expo/, /@expo/],
+            },
+          },
+          env: {
+            EXPO_OS: 'web',
+            EXPO_ROUTER_IMPORT_MODE: 'sync',
+            ...appConfigEnv(root),
+          },
+        },
+      };
+    },
+  };
+
+  return [...(jestCompat ? [jestMockTransform()] : []), webPlugin];
 }
 
 /**

@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`web platform renders react-native-web components 1`] = `
+<div
+  className="css-view-g5y9jx r-padding-edyy15"
+  dir={null}
+  ref={[Function]}
+>
+  <div
+    className="css-text-146c3p1 r-fontWeight-vw2c0b"
+    dir="auto"
+    ref={[Function]}
+  >
+    hello web
+  </div>
+</div>
+`;

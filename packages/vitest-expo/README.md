@@ -31,7 +31,7 @@ it('navigates', async () => {
 
 ## Status
 
-**0.1.0 — beta.** Validated against Expo SDK 57 / RN 0.86 / RNTL 13–14 / Vitest 4 on iOS and Android — via a conformance suite that runs identically under jest-expo and vitest-expo ([`examples/app`](../../examples/app)), and against a production Expo app (54 suites, ~500 tests, Redux/react-navigation/BLE/maps stack). Web (`jest-expo/web` equivalent) is not supported yet.
+**0.1.0 — beta.** Validated against Expo SDK 57 / RN 0.86 / RNTL 13–14 / Vitest 4 on iOS and Android — via a conformance suite that runs identically under jest-expo and vitest-expo ([`examples/app`](../../examples/app)), and against a production Expo app (54 suites, ~500 tests, Redux/react-navigation/BLE/maps stack). Web runs react-native-web in jsdom, mirroring `jest-expo/web`.
 
 ## Install
 
@@ -89,16 +89,21 @@ vitest-expo's core covers the common modern Expo stack (the `expo-*` SDK, expo-r
 
 ## Platforms
 
-iOS is the default. For Android, use a second config (analogous to `jest-expo/android`):
+iOS is the default. For Android and Web, use additional configs (analogous to `jest-expo/android` and `jest-expo/web`):
 
 ```ts
 // vitest.config.android.ts
 export default defineConfig({
   plugins: [vitestExpo({ platform: 'android' })],
 });
+
+// vitest.config.web.ts — react-native-web in jsdom, no native engine involved
+export default defineConfig({
+  plugins: [vitestExpo({ platform: 'web' })],
+});
 ```
 
-Platform extensions (`.ios.tsx` / `.android.tsx` / `.native.tsx`) resolve Metro-style in app code and node_modules.
+Platform extensions (`.ios.tsx` / `.android.tsx` / `.native.tsx` / `.web.tsx`) resolve Metro-style in app code and node_modules. The web platform aliases `react-native` to `react-native-web` in both module worlds and needs `jsdom` (and `react-native-web`) installed.
 
 ## Modules
 
@@ -110,7 +115,7 @@ Platform extensions (`.ios.tsx` / `.android.tsx` / `.native.tsx`) resolve Metro-
 
 ## Known limitations
 
-- No web platform yet (`react-native-web` / `jest-expo/web` equivalent)
+- On web, `@testing-library/react-native` is not usable — its text-in-`<Text>` invariant fires on DOM hosts. That is runner-independent (`jest-expo/web` fails identically); render web tests via `react-test-renderer` or use React Testing Library
 - `vitest-expo/router` uses deep imports into `expo-router/build/*` (no `exports` field there); verified per Expo SDK — currently SDK 57
 - Jest auto-applies root `__mocks__` for node_modules packages without a call; Vitest needs the explicit `vi.mock('pkg')` / `jest.mock('pkg')`
 - Class mocks constructed with `new` need a `function` implementation (`jest.fn().mockImplementation(function () { … })`) — arrow implementations are not constructable

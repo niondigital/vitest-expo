@@ -45,7 +45,11 @@
       "types": "./dist/helpers.d.ts",
       "default": "./dist/helpers.js"
     },
-    "./esm-loader": "./dist/esm-loader.js"
+    "./esm-loader": "./dist/esm-loader.js",
+    "./setup-web": {
+      "types": "./dist/setup-web.d.ts",
+      "default": "./dist/setup-web.js"
+    }
   },
   "files": [
     "dist",

@@ -4,7 +4,7 @@ module.exports = {
   setupFiles: ['<rootDir>/test-setup.mocks.ts'],
   testMatch: ['<rootDir>/src/__tests__/**/*.test.(ts|tsx)'],
   // *.vitest.test.tsx files use vitest-expo APIs (vi, vitest-expo/router).
-  testPathIgnorePatterns: ['/node_modules/', '\\.vitest\\.test\\.'],
+  testPathIgnorePatterns: ['/node_modules/', '\\.vitest\\.test\\.', '21-web-platform'],
   moduleNameMapper: {
     '\\.(css)$': '<rootDir>/css-stub.js',
     '^@/(.*)$': '<rootDir>/src/$1',

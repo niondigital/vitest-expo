@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     setup: 'src/setup.ts',
+    'setup-web': 'src/setup-web.ts',
     'router/index': 'src/router/index.tsx',
     'snapshot-serializer': 'src/snapshot/serializer.ts',
     helpers: 'src/helpers.ts',
@@ -16,6 +17,7 @@ export default defineConfig({
     entry: {
       index: 'src/index.ts',
       setup: 'src/setup.ts',
+    'setup-web': 'src/setup-web.ts',
       'router/index': 'src/router/index.tsx',
       'snapshot-serializer': 'src/snapshot/serializer.ts',
       helpers: 'src/helpers.ts',

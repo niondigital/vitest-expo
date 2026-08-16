@@ -19,6 +19,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./test-setup.mocks.ts'],
     include: ['src/__tests__/**/*.test.{ts,tsx}'],
-    exclude: ['src/__tests__/07-router.test.tsx', 'src/__tests__/02-snapshot.test.tsx'],
+    exclude: ['src/__tests__/21-web-platform.test.tsx', 'src/__tests__/07-router.test.tsx', 'src/__tests__/02-snapshot.test.tsx'],
   },
 });

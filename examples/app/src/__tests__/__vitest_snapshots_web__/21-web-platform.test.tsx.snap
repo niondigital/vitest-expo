@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`web platform > renders react-native-web components 1`] = `
+<div
+  className="css-view-g5y9jx r-padding-edyy15"
+  dir={null}
+>
+  <div
+    className="css-text-146c3p1 r-fontWeight-vw2c0b"
+    dir="auto"
+  >
+    hello web
+  </div>
+</div>
+`;

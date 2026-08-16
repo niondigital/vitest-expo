@@ -26,8 +26,12 @@ jobs:
         run: npm run test:vitest --workspace app
       - name: Conformance — Vitest (Android)
         run: npm run test:vitest:android --workspace app
+      - name: Conformance — Vitest (Web)
+        run: npm run test:vitest:web --workspace app
       - name: Conformance — jest-expo reference
         run: npm run test:jest --workspace app
+      - name: Conformance — jest-expo/web reference
+        run: npm run test:jest:web --workspace app
 
   pack:
     runs-on: ubuntu-latest

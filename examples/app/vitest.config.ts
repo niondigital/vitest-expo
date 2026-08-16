@@ -16,7 +16,7 @@ export default defineConfig({
     include: ['src/__tests__/**/*.test.{ts,tsx}'],
     // 07 exercises expo-router's own jest-only testing-library (documented gap);
     // 10-*.vitest.test.tsx covers the same scenarios via vitest-expo/router.
-    exclude: ['src/__tests__/07-router.test.tsx'],
+    exclude: ['src/__tests__/21-web-platform.test.tsx', 'src/__tests__/07-router.test.tsx'],
     // Keep Vitest snapshots separate from Jest's so formats can be diffed.
     resolveSnapshotPath: (testPath, snapExtension) =>
       path.join(path.dirname(testPath), '__vitest_snapshots__', path.basename(testPath) + snapExtension),
