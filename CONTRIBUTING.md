@@ -4,7 +4,7 @@
 
 ```bash
 npm ci
-npm run build --workspace vitest-expo
+npm run build
 ```
 
 ## Testing
@@ -22,4 +22,4 @@ When a change affects behavior jest-expo also has, add a conformance test that r
 
 ## Releasing
 
-`npm publish` from `packages/vitest-expo` (prepublishOnly builds). Versioning follows the supported Expo SDK.
+`npm publish` from the repository root (prepublishOnly builds). Versioning follows the supported Expo SDK.
