@@ -190,6 +190,33 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   return [rn, ...(jestCompat ? [jestMockTransform()] : []), jsxInJsPlugin, expoPlugin].flat();
 }
 
+export type VitestExpoPlatform = NonNullable<VitestExpoOptions['platform']>;
+
+export interface VitestExpoProjectsOptions extends Omit<VitestExpoOptions, 'platform'> {
+  /** Platforms to run, one Vitest project each. Default: ios + android. */
+  platforms?: VitestExpoPlatform[];
+}
+
+/**
+ * All platforms in one run, analogous to jest-expo/universal: returns one
+ * inline Vitest project per platform, each named after it.
+ *
+ *   export default defineConfig({
+ *     test: { projects: vitestExpoProjects({ platforms: ['ios', 'android'] }) },
+ *   });
+ *
+ * Per-project overrides (includes, snapshot paths, …) can be layered by
+ * mapping over the result, or by using vitestExpo({ platform }) directly in
+ * separate config files instead.
+ */
+export function vitestExpoProjects(options: VitestExpoProjectsOptions = {}) {
+  const { platforms = ['ios', 'android'], ...shared } = options;
+  return platforms.map((platform) => ({
+    plugins: vitestExpo({ ...shared, platform }),
+    test: { name: platform },
+  }));
+}
+
 /**
  * The web platform, analogous to jest-expo/web: react-native-web in jsdom.
  * There is no native boundary on web — Expo packages resolve their .web

@@ -116,6 +116,16 @@ export default defineConfig({ plugins: [vitestExpo({ platform: 'android' })] });
 export default defineConfig({ plugins: [vitestExpo({ platform: 'web' })] });
 ```
 
+Or run several platforms in one go, analogous to `jest-expo/universal`:
+
+```ts
+import { vitestExpoProjects } from 'vitest-expo';
+
+export default defineConfig({
+  test: { projects: vitestExpoProjects({ platforms: ['ios', 'android'] }) },
+});
+```
+
 Platform extensions (`.ios.tsx` / `.android.tsx` / `.native.tsx` / `.web.tsx`) resolve Metro-style everywhere, node_modules included.
 
 ## TypeScript

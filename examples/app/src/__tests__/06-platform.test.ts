@@ -9,5 +9,8 @@ describe('platform extension resolution (Metro semantics)', () => {
     if (platformLabel !== 'default') {
       expect(Platform.OS).toBe(platformLabel);
     }
+    // babel-preset-expo inlines EXPO_OS in app builds; the test runner provides
+    // it per platform — module resolution, Platform.OS and env must all agree.
+    expect(Platform.OS).toBe(process.env.EXPO_OS);
   });
 });

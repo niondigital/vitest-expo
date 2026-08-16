@@ -71,7 +71,8 @@
     "test:jest": "jest --ci",
     "typecheck": "tsc --noEmit",
     "test:vitest:web": "vitest run --config vitest.config.web.ts",
-    "test:jest:web": "jest --config jest.config.web.js --ci"
+    "test:jest:web": "jest --config jest.config.web.js --ci",
+    "test:vitest:universal": "vitest run --config vitest.config.universal.ts"
   },
   "private": true
 }

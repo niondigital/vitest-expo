@@ -28,6 +28,8 @@ jobs:
         run: npm run test:vitest:android --workspace app
       - name: Conformance — Vitest (Web)
         run: npm run test:vitest:web --workspace app
+      - name: Conformance — Vitest (universal projects)
+        run: npm run test:vitest:universal --workspace app
       - name: Conformance — jest-expo reference
         run: npm run test:jest --workspace app
       - name: Conformance — jest-expo/web reference
