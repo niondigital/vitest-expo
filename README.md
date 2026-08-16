@@ -171,6 +171,10 @@ Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vit
 - `jest.requireMock` does not return the live factory instance; import the mocked module instead
 - Partial mocks of app modules with a deep import graph are best written as `vi.mock(path, async (importOriginal) => …)`
 - Existing jest-expo snapshots need one regeneration (deliberate: the serializer renders the real host tree in a curated format)
+- App code is transformed by Vite, not by `babel-preset-expo`: Babel-only syntax (`export default from`, Flow-annotated `.js`, legacy decorators) and plugins from the project's `babel.config.js` do not apply — path aliases belong in `resolve.alias`
+- `import.meta` is standard ESM meta under Vite, not Expo's import-meta registry
+- `'use dom'` modules run as ordinary React components; they are not rewritten into WebView proxies
+- App modules stay ESM in the test graph instead of being converted to CommonJS
 
 </details>
 

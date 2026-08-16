@@ -268,6 +268,21 @@ module.exports.MaterialIcons = MockIcon;
 
 `npx vitest-expo migrate` flags this pattern in `__mocks__` files.
 
+### Async render
+
+`@testing-library/react-native` 14 made `render`, `fireEvent` and `act` async (this comes with the library, not the runner — a Jest suite upgrading to RNTL 14 faces the same change). The failure mode is confusing: destructuring an un-awaited `render()` yields undefined queries (`getByText is not a function`).
+
+```tsx
+// before (RNTL <= 13)
+const { getByText } = render(<Greeting />);
+
+// after (RNTL >= 14)
+await render(<Greeting />);
+expect(screen.getByText('Hello')).toBeOnTheScreen();
+```
+
+Suites staying on RNTL 13 are unaffected — both majors are supported.
+
 ## Snapshots
 
 Existing jest-expo snapshots need one regeneration:

@@ -75,7 +75,14 @@ export function checkDependencies(root: string): DependencyReport {
   // The native engine runs the RN Babel pipeline in Node, so both have to be
   // resolvable from the project even though nothing imports them directly.
   need('@react-native/babel-preset');
-  need('@babel/core');
+  // Babel 8 is npm's latest, but @react-native/babel-preset requires 7.
+  need('@babel/core', '@babel/core@^7');
+  const babelVersion = installedVersion(require, '@babel/core') ?? declared['@babel/core'];
+  if (babelVersion && Number(major(babelVersion)) >= 8) {
+    notes.push(
+      `the project uses @babel/core ${babelVersion}, but the React Native Babel preset requires 7 — install @babel/core@^7`
+    );
+  }
 
   return {
     missing,

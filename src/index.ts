@@ -156,6 +156,11 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
             // expo-router resolves routes synchronously in tests (same value
             // renderRouter forces imperatively).
             EXPO_ROUTER_IMPORT_MODE: 'sync',
+            // Also inlined by babel-preset-expo's expo-router plugin. The two
+            // router-root variables it derives from it (EXPO_ROUTER_APP_ROOT,
+            // EXPO_ROUTER_ABS_APP_ROOT) stay unset — the transform skips them
+            // under NODE_ENV=test as well.
+            EXPO_PROJECT_ROOT: root,
             // Real app config for Constants.expoConfig (see modules/expo-constants).
             ...appConfigEnv(root),
           },
@@ -276,7 +281,8 @@ function webPlugins(jestCompat: boolean): Plugin[] {
           env: {
             EXPO_OS: 'web',
             EXPO_ROUTER_IMPORT_MODE: 'sync',
-            ...appConfigEnv(root),
+            EXPO_PROJECT_ROOT: root,
+            ...appConfigEnv(root, { inlineManifest: true }),
           },
         },
       };
@@ -320,9 +326,20 @@ function normalizeSetupFiles(value: unknown): string[] {
  * — every Expo app does via the expo package — and falls back to reading
  * app.json directly.
  */
-function appConfigEnv(root: string): Record<string, string> {
+function appConfigEnv(
+  root: string,
+  options: { inlineManifest?: boolean } = {}
+): Record<string, string> {
   const config = readViaExpoConfig(root) ?? readAppJson(root);
-  return config ? { VITEST_EXPO_APP_CONFIG: JSON.stringify(config) } : {};
+  if (!config) return {};
+  const serialized = JSON.stringify(config);
+  return {
+    VITEST_EXPO_APP_CONFIG: serialized,
+    // On web, expo-constants reads the manifest straight from
+    // process.env.APP_MANIFEST — the value babel-preset-expo's inline-manifest
+    // plugin substitutes at build time (web and RSC only, never native).
+    ...(options.inlineManifest ? { APP_MANIFEST: serialized } : {}),
+  };
 }
 
 function readViaExpoConfig(root: string): Record<string, unknown> | null {

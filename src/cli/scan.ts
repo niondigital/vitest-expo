@@ -18,7 +18,8 @@ export type PatternId =
   | 'color-scheme-mock'
   | 'dynamic-cjs-mock'
   | 'empty-mock-factory'
-  | 'lazy-require-mocked';
+  | 'lazy-require-mocked'
+  | 'sync-render-destructure';
 
 export interface PatternInfo {
   title: string;
@@ -81,6 +82,12 @@ export const PATTERNS: Record<PatternId, PatternInfo> = {
     title: 'mocked package loaded via runtime require() in app code',
     hint: 'A require() inside a function bypasses the mock — the real module loads. Mock the wrapper module instead, or refactor to a static import.',
     anchor: '#lazy-require-of-a-mocked-package',
+    severity: 'check',
+  },
+  'sync-render-destructure': {
+    title: 'render() result used without await',
+    hint: 'render() is async since @testing-library/react-native 14 — destructuring the promise yields undefined queries. Use `await render(...)` and the `screen` queries.',
+    anchor: '#async-render',
     severity: 'check',
   },
   'dynamic-cjs-mock': {
@@ -255,6 +262,11 @@ export function scanFile(root: string, source_: SourceFile, aliasPrefixes: strin
   // Jest tolerates a factory that returns undefined; Vitest rejects it.
   matchAll(source, /\b(?:jest|vi)\.mock\(\s*['\"][^'\"]+['\"]\s*,\s*\(\)\s*=>\s*\{\s*\}\s*\)/g, (index) =>
     add('empty-mock-factory', index)
+  );
+  // A destructured render() result without await breaks under async render
+  // (RNTL >= 14): the queries come off the promise and are undefined.
+  matchAll(source, /(?<!await\s)(?:const|let|var)\s*\{[^}]*\}\s*=\s*render\s*\(/g, (index) =>
+    add('sync-render-destructure', index)
   );
   matchAll(source, /\bPlatform\.OS\s*=(?!=)/g, (index) => add('platform-os-assignment', index));
 
