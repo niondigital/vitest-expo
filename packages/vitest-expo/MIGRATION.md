@@ -214,6 +214,22 @@ jest.mock('some-package'); // picks up __mocks__/some-package.ts
 
 `__mocks__` directories next to a *local* module already need an explicit call under Jest, so those carry over unchanged.
 
+### Mock factories must return an object
+
+Jest tolerates a factory that returns nothing — a common idiom for side-effect-only mocks:
+
+```ts
+jest.mock('expo-sqlite/localStorage/install', () => {});   // Jest: fine, Vitest: throws
+```
+
+Vitest requires the factory to return the module's exports. Return an empty object instead:
+
+```ts
+jest.mock('expo-sqlite/localStorage/install', () => ({}));
+```
+
+`npx vitest-expo migrate --fix` rewrites this pattern automatically.
+
 ### Dynamic CJS exports in mock files
 
 A `__mocks__` file that computes its exports at property-access time works under Jest's runtime `require`, but named ESM imports resolve exports statically and see `undefined`:

@@ -177,14 +177,14 @@ function fromRootDir(target: string): string {
 }
 
 /**
- * `path.resolve(__dirname, 'src')`, relative to the project root. The path is
+ * `path.resolve(import.meta.dirname, 'src')` (ESM-native — no __dirname in .mts), relative to the project root. The path is
  * emitted through JSON.stringify — a directory name may legally contain
  * quotes or backslashes, which must not escape the generated string literal.
  */
 function resolveExpr(base: string, root: string, target: string): string {
   const absolute = path.resolve(base, target);
   const relative = path.relative(root, absolute) || '.';
-  return `path.resolve(__dirname, ${JSON.stringify(relative.split(path.sep).join('/'))})`;
+  return `path.resolve(import.meta.dirname, ${JSON.stringify(relative.split(path.sep).join('/'))})`;
 }
 
 function escapeRegex(value: string): string {

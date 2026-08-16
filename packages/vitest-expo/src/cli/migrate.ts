@@ -11,7 +11,7 @@ import {
   updateScripts,
 } from './generate';
 import { readJsonc } from './json';
-import { applyDoMockFix, collectSources, PATTERNS, scanFile, type Finding } from './scan';
+import { applyDoMockFix, applyEmptyFactoryFix, collectSources, PATTERNS, scanFile, type Finding } from './scan';
 import { code, color, fail, heading, info, ok, plain, warn } from './ui';
 
 export interface MigrateOptions {
@@ -174,6 +174,12 @@ export function migrate(options: MigrateOptions): number {
       ok(`--fix: rewrote ${fixed} jest.doMock call(s) to jest.mock`);
       plain(color.dim('review the result — jest.mock is hoisted, so a conditional guard no longer applies'));
     }
+    let emptyFixed = 0;
+    const filesWithEmptyFactory = new Set(
+      findings.filter((f) => f.pattern === 'empty-mock-factory').map((f) => path.join(root, f.file))
+    );
+    for (const file of filesWithEmptyFactory) emptyFixed += applyEmptyFactoryFix(file);
+    if (emptyFixed > 0) ok(`--fix: rewrote ${emptyFixed} empty mock factory(ies) to () => ({})`);
   }
 
   const grouped = new Map<string, Finding[]>();

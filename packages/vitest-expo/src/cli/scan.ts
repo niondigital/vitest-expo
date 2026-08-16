@@ -16,7 +16,8 @@ export type PatternId =
   | 'require-actual-alias'
   | 'platform-os-assignment'
   | 'color-scheme-mock'
-  | 'dynamic-cjs-mock';
+  | 'dynamic-cjs-mock'
+  | 'empty-mock-factory';
 
 export interface PatternInfo {
   title: string;
@@ -67,6 +68,12 @@ export const PATTERNS: Record<PatternId, PatternInfo> = {
     title: 'mocked useColorScheme',
     hint: "Use setColorScheme() from 'vitest-native/helpers' — the hook is backed by the real Appearance module.",
     anchor: '#automocked-usecolorscheme',
+    severity: 'change',
+  },
+  'empty-mock-factory': {
+    title: 'mock factory returning nothing',
+    hint: 'Vitest requires the factory to return an object — use () => ({}) for side-effect-only mocks.',
+    anchor: '#mock-factories-must-return-an-object',
     severity: 'change',
   },
   'dynamic-cjs-mock': {
@@ -165,6 +172,10 @@ export function scanFile(root: string, source_: SourceFile, aliasPrefixes: strin
   // deliberate un-hoisted registration and keeps working.
   if (setup) matchAll(source, /\bjest\.doMock\s*\(/g, (index) => add('do-mock', index));
   matchAll(source, /\bjest\.requireMock\s*\(/g, (index) => add('require-mock', index));
+  // Jest tolerates a factory that returns undefined; Vitest rejects it.
+  matchAll(source, /\b(?:jest|vi)\.mock\(\s*['\"][^'\"]+['\"]\s*,\s*\(\)\s*=>\s*\{\s*\}\s*\)/g, (index) =>
+    add('empty-mock-factory', index)
+  );
   matchAll(source, /\bPlatform\.OS\s*=(?!=)/g, (index) => add('platform-os-assignment', index));
 
   matchAll(
@@ -189,7 +200,22 @@ export function scanFile(root: string, source_: SourceFile, aliasPrefixes: strin
   return findings;
 }
 
-/** Rewrites jest.doMock to jest.mock. The only auto-fix the CLI applies. */
+/** Rewrites `() => {}` mock factories to `() => ({})` — same semantics, valid under Vitest. */
+export function applyEmptyFactoryFix(file: string): number {
+  const source = fs.readFileSync(file, 'utf8');
+  let count = 0;
+  const fixed = source.replace(
+    /\b((?:jest|vi)\.mock\(\s*['"][^'"]+['"]\s*,\s*\(\)\s*=>\s*)\{\s*\}(\s*\))/g,
+    (_all, head, tail) => {
+      count += 1;
+      return `${head}({})${tail}`;
+    }
+  );
+  if (count > 0) fs.writeFileSync(file, fixed);
+  return count;
+}
+
+/** Rewrites jest.doMock to jest.mock. */
 export function applyDoMockFix(file: string): number {
   const source = fs.readFileSync(file, 'utf8');
   let count = 0;
