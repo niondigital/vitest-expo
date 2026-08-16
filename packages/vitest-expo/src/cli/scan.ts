@@ -15,7 +15,8 @@ export type PatternId =
   | 'arrow-mock-implementation'
   | 'require-actual-alias'
   | 'platform-os-assignment'
-  | 'color-scheme-mock';
+  | 'color-scheme-mock'
+  | 'dynamic-cjs-mock';
 
 export interface PatternInfo {
   title: string;
@@ -68,6 +69,12 @@ export const PATTERNS: Record<PatternId, PatternInfo> = {
     anchor: '#automocked-usecolorscheme',
     severity: 'change',
   },
+  'dynamic-cjs-mock': {
+    title: 'dynamically computed CJS exports in a __mocks__ file',
+    hint: 'Named ESM imports cannot see Proxy/defineProperty exports — export the needed names statically as well.',
+    anchor: '#dynamic-cjs-exports-in-mock-files',
+    severity: 'change',
+  },
 };
 
 const TEST_FILE = /\.(test|spec)\.(ts|tsx|js|jsx)$/;
@@ -77,13 +84,15 @@ export interface SourceFile {
   file: string;
   /** Setup files are scanned for patterns that only misbehave outside a test file. */
   setup: boolean;
+  /** Files under a __mocks__ directory — scanned for CJS-export pitfalls. */
+  mocks?: boolean;
 }
 
-/** Test files anywhere under the project, plus the setup files carried over. */
+/** Test and __mocks__ files anywhere under the project, plus the setup files carried over. */
 export function collectSources(root: string, setupFiles: string[]): SourceFile[] {
-  const found: string[] = [];
-  walk(root, root, found);
-  const sources: SourceFile[] = found.map((file) => ({ file, setup: false }));
+  const found: SourceFile[] = [];
+  walk(root, false, found);
+  const sources = [...found];
   for (const setup of setupFiles) {
     const file = path.resolve(root, setup);
     if (!fs.existsSync(file)) continue;
@@ -94,7 +103,7 @@ export function collectSources(root: string, setupFiles: string[]): SourceFile[]
   return sources;
 }
 
-function walk(dir: string, root: string, out: string[]): void {
+function walk(dir: string, inMocks: boolean, out: SourceFile[]): void {
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -105,15 +114,18 @@ function walk(dir: string, root: string, out: string[]): void {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue;
-      walk(full, root, out);
-    } else if (entry.isFile() && TEST_FILE.test(entry.name)) {
-      out.push(full);
+      walk(full, inMocks || entry.name === '__mocks__', out);
+    } else if (entry.isFile()) {
+      if (TEST_FILE.test(entry.name)) out.push({ file: full, setup: false, mocks: inMocks });
+      else if (inMocks && /\.(ts|tsx|js|jsx|cjs)$/.test(entry.name)) {
+        out.push({ file: full, setup: false, mocks: true });
+      }
     }
   }
 }
 
 export function scanFile(root: string, source_: SourceFile, aliasPrefixes: string[]): Finding[] {
-  const { file, setup } = source_;
+  const { file, setup, mocks } = source_;
   let source: string;
   try {
     source = fs.readFileSync(file, 'utf8');
@@ -127,6 +139,18 @@ export function scanFile(root: string, source_: SourceFile, aliasPrefixes: strin
     const line = lineOf(source, index);
     findings.push({ pattern, file: rel, line, excerpt: (lines[line - 1] ?? '').trim() });
   };
+
+  // __mocks__ files: exports computed at property-access time (Proxy,
+  // defineProperty on module.exports) work under Jest's runtime require but
+  // are invisible to static named-export analysis — named ESM imports of the
+  // mocked module then resolve to undefined.
+  if (mocks) {
+    matchAll(
+      source,
+      /module\.exports\s*=\s*new\s+Proxy\s*\(|Object\.defineProperty\s*\(\s*module\.exports/g,
+      (index) => add('dynamic-cjs-mock', index)
+    );
+  }
 
   // The upstream mock is required under jest-expo and redundant (and broken)
   // here, so it is matched as a whole call rather than by module name.

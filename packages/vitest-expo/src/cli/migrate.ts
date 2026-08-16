@@ -52,9 +52,11 @@ export function migrate(options: MigrateOptions): number {
     warn(`Preset is "${jest.preset}", not jest-expo — the generated config may need more work.`);
   }
 
-  /* -- 2. vitest.config.ts ---------------------------------------------- */
+  /* -- 2. vitest.config.mts ---------------------------------------------- */
+  // .mts loads natively regardless of the project's package.json "type",
+  // so the generated config never triggers Vite's CJS-config deprecation.
 
-  heading('vitest.config.ts');
+  heading('vitest.config.mts');
 
   const tsconfigAliases = aliasesFromTsconfig(root);
   const mapped = aliasesFromModuleNameMapper(root, jest.moduleNameMapper, tsconfigAliases);
@@ -75,16 +77,26 @@ export function migrate(options: MigrateOptions): number {
 
   const excludes = toExcludeGlobs(jest.testPathIgnorePatterns);
 
-  const configPath = path.join(root, 'vitest.config.ts');
+  const configPath = path.join(root, 'vitest.config.mts');
   const contents = renderConfig({ aliases, setupFiles, exclude: excludes.globs });
 
-  if (fs.existsSync(configPath) && !options.force) {
-    warn('vitest.config.ts exists — left untouched. Re-run with --force to overwrite.');
+  const existingConfig = ['vitest.config.mts', 'vitest.config.ts', 'vitest.config.js', 'vitest.config.mjs']
+    .map((name) => path.join(root, name))
+    .find((candidate) => fs.existsSync(candidate));
+  if (existingConfig && !options.force) {
+    warn(
+      `${path.basename(existingConfig)} exists — left untouched. Re-run with --force to overwrite.`
+    );
   } else if (dryRun) {
-    info('would write vitest.config.ts');
+    info('would write vitest.config.mts');
   } else {
+    if (existingConfig && existingConfig !== configPath) {
+      // Two config files would be ambiguous — keep the old one visibly aside.
+      fs.renameSync(existingConfig, `${existingConfig}.pre-migration.bak`);
+      warn(`moved ${path.basename(existingConfig)} to ${path.basename(existingConfig)}.pre-migration.bak`);
+    }
     fs.writeFileSync(configPath, contents);
-    ok(`wrote vitest.config.ts${options.force ? ' (overwritten)' : ''}`);
+    ok(`wrote vitest.config.mts${options.force ? ' (overwritten)' : ''}`);
   }
 
   for (const alias of aliases) info(`alias ${alias.origin}`);

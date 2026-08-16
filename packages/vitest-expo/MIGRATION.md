@@ -212,6 +212,26 @@ jest.mock('some-package'); // picks up __mocks__/some-package.ts
 
 `__mocks__` directories next to a *local* module already need an explicit call under Jest, so those carry over unchanged.
 
+### Dynamic CJS exports in mock files
+
+A `__mocks__` file that computes its exports at property-access time works under Jest's runtime `require`, but named ESM imports resolve exports statically and see `undefined`:
+
+```js
+// __mocks__/@expo/vector-icons.js — works under Jest, breaks named imports under Vitest
+module.exports = new Proxy({}, { get: () => MockIcon });
+```
+
+Export the names the app actually imports statically as well (the Proxy can stay as a default for anything else):
+
+```js
+const mock = new Proxy({ Ionicons: MockIcon, MaterialIcons: MockIcon }, { get: (t, k) => t[k] ?? MockIcon });
+module.exports = mock;
+module.exports.Ionicons = MockIcon;
+module.exports.MaterialIcons = MockIcon;
+```
+
+`npx vitest-expo migrate` flags this pattern in `__mocks__` files.
+
 ## Snapshots
 
 Existing jest-expo snapshots need one regeneration:
@@ -337,5 +357,6 @@ A short checklist before digging deeper:
 - **`X is not a constructor`** — an arrow `mockImplementation` used with `new`; see [Class mocks need `function` implementations](#class-mocks-need-function-implementations).
 - **A test passes alone and fails in the suite** — state left in a module-level mock; `resetAllMocks` from `vitest-native/helpers` in a `beforeEach` resets the ambient state (platform, dimensions, color scheme) along with the mocks.
 - **Platform-dependent assertions fail** — the run is iOS unless a config says otherwise.
+- **Warnings about a package resolving "to two different files"** — a dependency exists as both CJS and ESM builds (common in MSW's dependency tree). Harmless while the suite is green; if a library's module-level state seems split, pin the resolution with a `resolve.alias` to one build.
 
 Running both runners side by side (`npm test` and `npm run test:jest`) while migrating makes it obvious whether a failure is a migration artifact or a test that was passing for the wrong reason.
