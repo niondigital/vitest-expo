@@ -57,7 +57,8 @@
   "files": [
     "dist",
     "types.d.ts",
-    "MIGRATION.md"
+    "MIGRATION.md",
+    "MIGRATION-AGENTS.md"
   ],
   "sideEffects": [
     "./dist/setup.js",

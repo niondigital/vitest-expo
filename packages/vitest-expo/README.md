@@ -52,7 +52,7 @@ Snapshots come out clean — public component names, effective styles, no intern
 npx vitest-expo migrate
 ```
 
-The CLI derives your Vitest config from the existing Jest config, rewires the scripts and reports the few patterns that need a hand. Existing suites keep working as written — `jest.mock`, spies, fake timers and `__mocks__` directories included. Details in the **[migration guide](./MIGRATION.md)**.
+The CLI derives your Vitest config from the existing Jest config, rewires the scripts and reports the few patterns that need a hand. Existing suites keep working as written — `jest.mock`, spies, fake timers and `__mocks__` directories included. Details in the **[migration guide](./MIGRATION.md)** — and if an AI agent does the migrating, hand it **[MIGRATION-AGENTS.md](./MIGRATION-AGENTS.md)** for a full idiomatic rewrite.
 
 ## Why
 

@@ -220,7 +220,12 @@ export function migrate(options: MigrateOptions): number {
     `\n${color.bold('Summary')}: ${aliases.length} alias(es), ${setupFiles.length} setup file(s), ` +
       `${changeCount} pattern(s) to change, ${manual.length} item(s) needing a hand.`
   );
-  console.log(color.dim(`Full guide: node_modules/vitest-expo/${GUIDE}\n`));
+  console.log(color.dim(`Full guide: node_modules/vitest-expo/${GUIDE}`));
+  console.log(
+    color.dim(
+      'AI agent doing this migration? Follow node_modules/vitest-expo/MIGRATION-AGENTS.md (full idiomatic rewrite).\n'
+    )
+  );
 
   return 0;
 }

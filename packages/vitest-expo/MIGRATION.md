@@ -1,5 +1,7 @@
 # Migrating from jest-expo
 
+> **AI agent performing this migration?** Follow [MIGRATION-AGENTS.md](./MIGRATION-AGENTS.md) instead: it prescribes a full idiomatic rewrite (no `jest.*` left behind), verified by running the suite with the compatibility layer disabled.
+
 vitest-expo is built so that a jest-expo suite keeps running as it is written. The Jest API stays available (`jest.mock`, `jest.fn`, `jest.requireActual`, `jest.spyOn`, fake timers), mock factories are hoisted the way `babel-plugin-jest-hoist` hoists them, and the React Native runtime under the test is real. What changes is the configuration and a short list of patterns that depend on Jest internals.
 
 Plan on two steps: get the config across (mostly automated), then work through the handful of patterns below.
