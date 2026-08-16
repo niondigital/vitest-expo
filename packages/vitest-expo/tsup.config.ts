@@ -9,10 +9,12 @@ export default defineConfig({
     'snapshot-serializer': 'src/snapshot/serializer.ts',
     helpers: 'src/helpers.ts',
     'esm-loader': 'src/esm-loader.ts',
+    'cli/index': 'src/cli/index.ts',
   },
   format: ['esm'],
-  // esm-loader is a Node loader hook, not user-facing API — no .d.ts needed
-  // (and its node:* imports trip the isolated dts entry build).
+  // esm-loader is a Node loader hook and the CLI is a binary, not user-facing
+  // API — no .d.ts needed for either (and esm-loader's node:* imports trip the
+  // isolated dts entry build).
   dts: {
     entry: {
       index: 'src/index.ts',

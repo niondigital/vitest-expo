@@ -1,8 +1,18 @@
 # vitest-expo
 
-Test Expo apps with Vitest — the jest-expo experience on a modern runner.
+**Test your Expo app with Vitest.** A drop-in replacement for jest-expo — iOS, Android and Web, verified against a production app and a conformance suite that runs every test under both runners.
 
-vitest-expo layers the Expo-specific pieces on top of [vitest-native](https://github.com/danfry1/vitest-native), which carries the React Native core (real RN under Node, transform pipeline, library presets). One plugin call replaces the jest-expo preset:
+```bash
+npx vitest-expo migrate   # inside your jest-expo project
+```
+
+That's the migration. It reads your Jest config, writes the Vitest one, rewires your scripts and tells you the handful of things it can't do for you. Your existing tests — `jest.mock` walls, `requireActual` partial mocks, `__mocks__` directories, spies, fake timers — keep working as written.
+
+## Quick start
+
+```bash
+npm install -D vitest-expo vitest vitest-native @testing-library/react-native react-test-renderer
+```
 
 ```ts
 // vitest.config.ts
@@ -10,74 +20,103 @@ import { defineConfig } from 'vitest/config';
 import { vitestExpo } from 'vitest-expo';
 
 export default defineConfig({
-  plugins: [vitestExpo()], // or vitestExpo({ platform: 'android' })
+  plugins: [vitestExpo()],
   test: { globals: true },
 });
 ```
 
-```tsx
-// __tests__/routes.test.tsx — expo-router testing, Jest-only upstream, works here
-import { renderRouter, screen, testRouter } from 'vitest-expo/router';
+Then write tests the way you already do:
 
-it('navigates', async () => {
-  const result = await renderRouter(
-    { index: () => <Home />, about: () => <About /> },
-    { initialUrl: '/' }
-  );
-  await testRouter.navigate('/about');
-  expect(result).toHavePathname('/about');
+```tsx
+import { render, screen, userEvent } from '@testing-library/react-native';
+import { OrderButton } from '../order-button';
+
+test('confirms an order', async () => {
+  const user = userEvent.setup();
+  await render(<OrderButton />);
+
+  await user.press(screen.getByRole('button', { name: 'Order now' }));
+
+  expect(screen.getByText('Thanks for your order!')).toBeOnTheScreen();
+  expect(screen.toJSON()).toMatchSnapshot();
 });
 ```
 
-## Status
+Snapshots come out clean — public component names, effective styles, no internal noise:
 
-**0.1.0 — beta.** Validated against Expo SDK 57 / RN 0.86 / RNTL 13–14 / Vitest 4 on iOS and Android — via a conformance suite that runs identically under jest-expo and vitest-expo ([`examples/app`](../../examples/app)), and against a production Expo app (54 suites, ~500 tests, Redux/react-navigation/BLE/maps stack). Web runs react-native-web in jsdom, mirroring `jest-expo/web`.
-
-## Install
-
-```bash
-npm install -D vitest-expo vitest vitest-native @testing-library/react-native react-test-renderer
+```
+<View accessibilityRole="summary" style={{"borderRadius": 8, "padding": 12}}>
+  <Text style={{"color": "#333", "fontSize": 14}}>
+    Thanks for your order!
+  </Text>
+</View>
 ```
 
-`react-test-renderer` must match your React version (Expo SDK 57: `react-test-renderer@19.2.3`).
+## Why
 
-## What the plugin does
+- **Watch mode that feels instant.** Single-file re-runs and cold starts are faster than jest-expo; cold runs take less than half the CPU (relevant in CI containers). Full warm runs are on par.
+- **Your tests hit real React Native.** jest-expo replaces core components and modules with stubs; here the same JavaScript runs that ships in your app — only the native boundary is mocked.
+- **`Constants.expoConfig` is your real app config.** Read from app.json / app.config.ts, so code that depends on your scheme, name or extra values behaves like production. Under jest-expo the manifest is empty.
+- **expo-router screens are testable.** Upstream's `expo-router/testing-library` is Jest-only; `vitest-expo/router` provides it for Vitest:
 
-- wraps `reactNative()` from vitest-native (platform selection, RN core, library presets) and pins the **native engine** — everything the Expo layer provides assumes real React Native, so it never silently degrades to the pure-JS mock engine
-- **Jest compatibility on by default** (`jestCompat: true`): `jest.mock(...)` calls are hoisted, a `jest` global backed by `vi` is provided, Jest-only modules are shimmed — suites written for jest-expo run without a syntax migration. Verified: factory mocks, `requireActual` partial mocks (including tsconfig-path aliases like `@/…`, expanded from the project's resolve aliases with Metro-style extensionless-TS resolution), `__mocks__` dirs, automocks, prototype/namespace spies
-- **Node-side resolution hardening** for TS-source packages (Expo ships them): extensionless relative imports resolve Metro-style, `.ts` files under node_modules transpile on demand, type-only imports that survived compilation resolve to an empty module, and the Babel toolchain itself is shielded from the RN transform
-- `transformPackages: ['pkg']` — the `transformIgnorePatterns`-allowlist equivalent for packages shipping untranspiled JSX that auto-detection misses (react-native declared only as a peer dependency)
-- **real app config in tests**: `Constants.expoConfig` is read via `@expo/config` (app.config.js/ts, plugins) with an app.json fallback, so `Linking.createURL()` uses your real scheme — jest-expo leaves the manifest empty
-- sets `EXPO_OS` / `EXPO_ROUTER_IMPORT_MODE` env parity (babel-preset-expo would inline these in an app build)
-- inlines the Expo packages that ship TS-only/untranspiled source (`expo-modules-core`, `expo-router`, `expo`, `expo-asset`, `expo-image`, `expo-symbols`) into the Vite graph
-- registers `.xml` as an asset extension (Android vector drawables, matching Metro)
-- injects the runtime setup: curated snapshot serializer, `ErrorUtils` stub, and the Expo native-module layer
+  ```tsx
+  import { renderRouter, screen } from 'vitest-expo/router';
+  import { fireEvent } from '@testing-library/react-native';
 
-## The Expo native-module layer
+  test('navigates from home to details', async () => {
+    await renderRouter(
+      { index: HomeScreen /* renders a <Link href="/details"> */, details: DetailsScreen },
+      { initialUrl: '/' }
+    );
 
-Driven by **data specs, not hand-written rules**:
+    await fireEvent.press(screen.getByText('Show details'));
 
-1. vitest-expo's spec overlay (`module-spec-overrides.ts`, same format plus a `returns` extension — every entry is an upstream-PR candidate for jest-expo)
-2. **jest-expo's vendored module specs** (`expo-module-specs.ts`, 72 modules imported via `npm run import-jest-expo-mocks`, materialized as vi.fn mocks with jest-expo's exact semantics)
-3. generic Expo conventions as last resort: `*Async` methods resolve, PascalCase properties are native classes on `SharedObject`
-4. absent-module modeling: probes like `isRunningInExpoGo()` read as **false** — tests model a dev/standalone build, not Expo Go (`executionEnvironment: 'bare'`)
+    expect(await screen.findByText('Details')).toBeOnTheScreen();
+  });
+  ```
 
-## Mocking your own libraries
+- **No config archaeology.** No `transformIgnorePatterns` allowlists, no custom resolvers to force ESM packages into CJS, no per-library mock files for the Expo SDK — the Expo module layer ships with the preset.
+- **One runner across web and native.** The same Vitest you use everywhere else, including `platform: 'web'` (react-native-web in jsdom, like `jest-expo/web`).
 
-vitest-expo's core covers the common modern Expo stack (the `expo-*` SDK, expo-router, and the RN libraries vitest-native's presets ship). Everything project-specific — BLE, maps, analytics, state libraries, whatever — is project territory, with three escape hatches (all conformance-tested):
+## Migrating from jest-expo
 
-1. **`jest.mock` / `vi.mock`** in a test file, or in a project setup file for a suite-wide "mock wall" (stateful fakes included):
+```bash
+npx vitest-expo migrate        # analyze + generate config + report
+npx vitest-expo migrate --fix  # also apply the safe auto-fixes
+```
 
-   ```ts
-   // vitest.config.ts → test: { setupFiles: ['./test-setup.mocks.ts'] }
-   jest.mock('react-native-some-sdk', () => {
-     const events: string[] = [];
-     return { track: jest.fn((e: string) => events.push(e)), getEvents: () => events };
-   });
-   ```
+The CLI derives a `vitest.config.ts` from your Jest config (setup files, tsconfig-path and `moduleNameMapper` aliases, ignore patterns), points the `test` script at Vitest, prints the exact install line for anything missing, and scans the suite for the few patterns that need a hand — each covered with before/after examples in the **[migration guide](./MIGRATION.md)**. Snapshots are regenerated once (`vitest run -u`).
 
-2. **`extendPresetMock(pkg, overrides)`** for packages vitest-native already shadows via preset (expo-constants, expo-linking, reanimated, …)
-3. **`mockNativeModule(name, impl)`** (from `vitest-native/helpers`) for individual native modules
+## Mocking
+
+Everything project-specific stays project territory, with the mechanisms you know:
+
+```ts
+// a stateful mock wall in your setup file — exactly like under jest-expo
+jest.mock('react-native-some-sdk', () => {
+  const events: string[] = [];
+  return { track: jest.fn((e: string) => events.push(e)), getEvents: () => events };
+});
+```
+
+- `jest.mock` / `vi.mock` in tests or setup files (factories, `requireActual` partials — tsconfig aliases included, `__mocks__` dirs, automocks)
+- `extendPresetMock(pkg, overrides)` from `vitest-expo/helpers` to tweak a built-in library preset (expo-constants, reanimated, …)
+- `mockNativeModule(name, impl)` from `vitest-native/helpers` for a single native module
+- `transformPackages: ['pkg']` for libraries shipping untranspiled JSX
+
+## Platforms
+
+iOS is the default. Android and Web are one config each:
+
+```ts
+// vitest.config.android.ts
+export default defineConfig({ plugins: [vitestExpo({ platform: 'android' })] });
+
+// vitest.config.web.ts — react-native-web in jsdom
+export default defineConfig({ plugins: [vitestExpo({ platform: 'web' })] });
+```
+
+Platform extensions (`.ios.tsx` / `.android.tsx` / `.native.tsx` / `.web.tsx`) resolve Metro-style everywhere, node_modules included.
 
 ## TypeScript
 
@@ -85,52 +124,43 @@ vitest-expo's core covers the common modern Expo stack (the `expo-*` SDK, expo-r
 { "compilerOptions": { "types": ["expo/types", "vitest-expo/types"] } }
 ```
 
-`vitest-expo/types` bundles the Vitest globals (`describe`/`it`/`expect` for `globals: true`) and the RNTL matcher augmentation (`toBeOnTheScreen`, …) that RNTL only declares for Jest. This is also what makes IDEs resolve test files.
+One entry covers the Vitest globals and the RNTL matchers (`toBeOnTheScreen`, …).
 
-## Platforms
+## Status
 
-iOS is the default. For Android and Web, use additional configs (analogous to `jest-expo/android` and `jest-expo/web`):
+Beta. Validated against Expo SDK 57 / RN 0.86 / RNTL 13–14 / Vitest 4 — via a conformance suite that runs identically under jest-expo and vitest-expo on iOS, Android and Web ([`examples/app`](../../examples/app)), and against a production Expo app (54 suites, ~500 tests: Redux, React Navigation, BLE, maps). Built on [vitest-native](https://github.com/danfry1/vitest-native), which carries the React Native core.
 
-```ts
-// vitest.config.android.ts
-export default defineConfig({
-  plugins: [vitestExpo({ platform: 'android' })],
-});
+<details>
+<summary><strong>How it works</strong></summary>
 
-// vitest.config.web.ts — react-native-web in jsdom, no native engine involved
-export default defineConfig({
-  plugins: [vitestExpo({ platform: 'web' })],
-});
-```
+vitest-expo layers the Expo pieces on top of vitest-native (real React Native under Node, transform pipeline, library presets):
 
-Platform extensions (`.ios.tsx` / `.android.tsx` / `.native.tsx` / `.web.tsx`) resolve Metro-style in app code and node_modules. The web platform aliases `react-native` to `react-native-web` in both module worlds and needs `jsdom` (and `react-native-web`) installed.
+- pins the **native engine** — everything the Expo layer provides assumes real React Native, so it never silently degrades to a pure-JS mock
+- **Jest compatibility on by default**: `jest.mock(...)` calls are hoisted, a `jest` global backed by `vi` is provided, `jest.requireActual` understands your resolve aliases with Metro-style extensionless-TS resolution
+- **Node-side resolution hardening** for TS-source Expo packages: extensionless relative imports resolve Metro-style, `.ts` under node_modules transpiles on demand, type-only imports that survived compilation resolve to an empty module
+- the **Expo native-module layer** is driven by data specs, not hand-written rules: a reviewed overlay → module specs vendored from jest-expo (72 modules, materialized as vi.fn mocks with jest-expo's exact semantics) → generic Expo conventions (`*Async` methods resolve, PascalCase properties are native classes). Absence is modeled too: probes like `isRunningInExpoGo()` read false — tests behave like a dev build
+- injects the runtime setup: curated snapshot serializer, `ErrorUtils` stub, real app config into `Constants.expoConfig`
 
-## Modules
+Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vitest-expo/helpers` · `vitest-expo/snapshot-serializer` · `vitest-expo/types` · the `vitest-expo` CLI (`migrate`).
 
-- `vitest-expo` — the Vite/Vitest plugin preset
-- `vitest-expo/router` — port of `expo-router/testing-library` (upstream is Jest-only: it registers Jest module mocks at import time). Provides `renderRouter`, `testRouter`, `getMockContext` (reused from expo-router), and the `toHavePathname` matcher family. Note: `testRouter` methods are async here (RNTL 14 `act` is async)
-- `vitest-expo/snapshot-serializer` — curated host-tree serializer, auto-registered by the plugin. Maps host names (`RCTView` → `View`), flattens styles, drops function props / resolved defaults / undefined noise. Deliberately *not* byte-identical to jest-expo — it keeps what is meaningful in a snapshot. Existing jest-expo snapshots need one regeneration on migration
-- `vitest-expo/setup` — the runtime setup (injected automatically by the plugin)
-- `vitest-expo/helpers` — runtime helpers for test/setup files (`extendPresetMock` to augment a built-in library preset mock per project)
+</details>
 
-## Known limitations
+<details>
+<summary><strong>Known limitations</strong></summary>
 
-- On web, `@testing-library/react-native` is not usable — its text-in-`<Text>` invariant fires on DOM hosts. That is runner-independent (`jest-expo/web` fails identically); render web tests via `react-test-renderer` or use React Testing Library
+- On web, `@testing-library/react-native` is not usable — its text-in-`<Text>` invariant fires on DOM hosts. That is runner-independent (`jest-expo/web` fails identically); render web tests via `react-test-renderer` or React Testing Library
 - `vitest-expo/router` uses deep imports into `expo-router/build/*` (no `exports` field there); verified per Expo SDK — currently SDK 57
-- Jest auto-applies root `__mocks__` for node_modules packages without a call; Vitest needs the explicit `vi.mock('pkg')` / `jest.mock('pkg')`
-- Class mocks constructed with `new` need a `function` implementation (`jest.fn().mockImplementation(function () { … })`) — arrow implementations are not constructable
+- Jest auto-applies root `__mocks__` for node_modules packages without a call; Vitest needs the explicit `jest.mock('pkg')`
+- Class mocks constructed with `new` need a `function` implementation — arrow implementations are not constructable
 - `jest.requireMock` does not return the live factory instance; import the mocked module instead
-- Partial mocks of app modules with a deep import graph are best written as `vi.mock(path, async (importOriginal) => …)` — `jest.requireActual` on an app module loads it (and its imports) through Node instead of the test module graph
+- Partial mocks of app modules with a deep import graph are best written as `vi.mock(path, async (importOriginal) => …)`
+- Existing jest-expo snapshots need one regeneration (deliberate: the serializer renders the real host tree in a curated format)
+
+</details>
 
 ## Development
 
-Monorepo: `packages/vitest-expo` (this package) and `examples/app` (Expo SDK 57 app whose test suite runs under jest-expo AND vitest-expo — the conformance gate, see CI).
-
-```bash
-npm ci
-npm run build --workspace vitest-expo
-npm run test --workspace app   # vitest iOS + Android + jest-expo reference
-```
+Monorepo: `packages/vitest-expo` (this package) and `examples/app` (the conformance suite — every change must keep the jest-expo reference runs green too, see [CONTRIBUTING](../../CONTRIBUTING.md)).
 
 ## License
 

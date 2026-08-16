@@ -51,9 +51,13 @@
       "default": "./dist/setup-web.js"
     }
   },
+  "bin": {
+    "vitest-expo": "./dist/cli/index.js"
+  },
   "files": [
     "dist",
-    "types.d.ts"
+    "types.d.ts",
+    "MIGRATION.md"
   ],
   "sideEffects": [
     "./dist/setup.js",
