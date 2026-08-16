@@ -17,7 +17,8 @@ export type PatternId =
   | 'platform-os-assignment'
   | 'color-scheme-mock'
   | 'dynamic-cjs-mock'
-  | 'empty-mock-factory';
+  | 'empty-mock-factory'
+  | 'lazy-require-mocked';
 
 export interface PatternInfo {
   title: string;
@@ -76,6 +77,12 @@ export const PATTERNS: Record<PatternId, PatternInfo> = {
     anchor: '#mock-factories-must-return-an-object',
     severity: 'change',
   },
+  'lazy-require-mocked': {
+    title: 'mocked package loaded via runtime require() in app code',
+    hint: 'A require() inside a function bypasses the mock — the real module loads. Mock the wrapper module instead, or refactor to a static import.',
+    anchor: '#lazy-require-of-a-mocked-package',
+    severity: 'check',
+  },
   'dynamic-cjs-mock': {
     title: 'dynamically computed CJS exports in a __mocks__ file',
     hint: 'Named ESM imports cannot see Proxy/defineProperty exports — export the needed names statically as well.',
@@ -93,6 +100,79 @@ export interface SourceFile {
   setup: boolean;
   /** Files under a __mocks__ directory — scanned for CJS-export pitfalls. */
   mocks?: boolean;
+}
+
+/** All bare-package specifiers mocked anywhere in the suite. */
+export function mockedBareSpecifiers(sources: SourceFile[]): Set<string> {
+  const specifiers = new Set<string>();
+  for (const { file } of sources) {
+    let source: string;
+    try {
+      source = fs.readFileSync(file, 'utf8');
+    } catch {
+      continue;
+    }
+    const call = /\b(?:jest|vi)\.mock\(\s*['"]((?:@[\w.-]+\/)?[\w.-]+(?:\/[\w./-]+)?)['"]/g;
+    let match: RegExpExecArray | null;
+    while ((match = call.exec(source))) {
+      if (!match[1].startsWith('.')) specifiers.add(match[1]);
+    }
+  }
+  return specifiers;
+}
+
+/**
+ * App source files that load a mocked package via a runtime require() — the
+ * mock only intercepts the import graph, so such a call loads the real module.
+ */
+export function scanLazyRequires(root: string, mocked: Set<string>): Finding[] {
+  if (mocked.size === 0) return [];
+  const files: string[] = [];
+  walkSource(root, files);
+  const findings: Finding[] = [];
+  for (const file of files) {
+    let source: string;
+    try {
+      source = fs.readFileSync(file, 'utf8');
+    } catch {
+      continue;
+    }
+    for (const pkg of mocked) {
+      const escaped = pkg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const call = new RegExp(`\\brequire\\(\\s*['"]${escaped}['"]`, 'g');
+      let match: RegExpExecArray | null;
+      while ((match = call.exec(source))) {
+        const line = lineOf(source, match.index);
+        findings.push({
+          pattern: 'lazy-require-mocked',
+          file: path.relative(root, file) || file,
+          line,
+          excerpt: (source.split('\n')[line - 1] ?? '').trim(),
+        });
+      }
+    }
+  }
+  return findings;
+}
+
+const SOURCE_FILE = /\.(ts|tsx|js|jsx)$/;
+
+function walkSource(dir: string, out: string[]): void {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (SKIP_DIRS.has(entry.name) || entry.name === '__mocks__' || entry.name === '__tests__') continue;
+      walkSource(full, out);
+    } else if (entry.isFile() && SOURCE_FILE.test(entry.name) && !TEST_FILE.test(entry.name)) {
+      out.push(full);
+    }
+  }
 }
 
 /** Test and __mocks__ files anywhere under the project, plus the setup files carried over. */

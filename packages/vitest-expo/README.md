@@ -155,7 +155,7 @@ vitest-expo layers the Expo pieces on top of vitest-native (real React Native un
 - **Node-side resolution hardening** for TS-source Expo packages: extensionless relative imports resolve Metro-style, `.ts` under node_modules transpiles on demand, type-only imports that survived compilation resolve to an empty module
 - the **Expo native-module layer** is driven by data specs, not hand-written rules: a reviewed overlay → module specs vendored from jest-expo (72 modules, materialized as vi.fn mocks with jest-expo's exact semantics) → generic Expo conventions (`*Async` methods resolve, PascalCase properties are native classes). Absence is modeled too: probes like `isRunningInExpoGo()` read false — tests behave like a dev build
 - real app config is injected into `Constants.expoConfig` (from app.json / app.config.ts), and the runtime setup ships a curated snapshot serializer and an `ErrorUtils` stub
-- performance on a large production suite: faster cold starts and single-file re-runs (cold runs use less than half the CPU), comparable warm full runs
+- performance across seven measured real-world suites: cold starts faster everywhere (up to a third, at less than half the CPU), warm full runs faster on six of seven (up to 4x) -- only a very wide suite on a many-core machine ran its warm full pass faster under jest-expo
 
 Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vitest-expo/helpers` · `vitest-expo/snapshot-serializer` · `vitest-expo/types` · the `vitest-expo` CLI (`migrate`).
 

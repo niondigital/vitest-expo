@@ -11,7 +11,16 @@ import {
   updateScripts,
 } from './generate';
 import { readJsonc } from './json';
-import { applyDoMockFix, applyEmptyFactoryFix, collectSources, PATTERNS, scanFile, type Finding } from './scan';
+import {
+  applyDoMockFix,
+  applyEmptyFactoryFix,
+  collectSources,
+  mockedBareSpecifiers,
+  PATTERNS,
+  scanFile,
+  scanLazyRequires,
+  type Finding,
+} from './scan';
 import { code, color, fail, heading, info, ok, plain, warn } from './ui';
 
 export interface MigrateOptions {
@@ -160,6 +169,7 @@ export function migrate(options: MigrateOptions): number {
   const sources = collectSources(root, setupEntries.map(toFsPath));
   const findings: Finding[] = [];
   for (const source of sources) findings.push(...scanFile(root, source, aliasPrefixes));
+  findings.push(...scanLazyRequires(root, mockedBareSpecifiers(sources)));
 
   const testCount = sources.filter((source) => !source.setup).length;
   info(`scanned ${testCount} test file(s) and ${sources.length - testCount} setup file(s)`);

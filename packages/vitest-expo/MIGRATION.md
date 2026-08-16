@@ -214,6 +214,24 @@ jest.mock('some-package'); // picks up __mocks__/some-package.ts
 
 `__mocks__` directories next to a *local* module already need an explicit call under Jest, so those carry over unchanged.
 
+### Lazy require of a mocked package
+
+Mocks intercept the import graph. When app code loads a package with a runtime `require()` inside a function — a common guard around native modules that would crash at static-import time —
+
+```ts
+function getBackend() {
+  const { AppleLLM } = require('@some/native-wrapper'); // loaded at call time
+  return AppleLLM;
+}
+```
+
+a `vi.mock('@some/native-wrapper', …)` in the test does not apply to that call: the real module loads. Options, in order of preference:
+
+1. **Mock the wrapper module** (`vi.mock('@/services/backend', …)`) instead of the package it guards — tests usually care about the wrapper's behavior anyway.
+2. Refactor the guard to a static import in a platform-specific file (`backend.ios.ts` / `backend.android.ts`), which restores static analyzability.
+
+`npx vitest-expo migrate` cross-checks mocked packages against runtime `require()` calls in app code and flags the affected call sites.
+
 ### Mock factories must return an object
 
 Jest tolerates a factory that returns nothing — a common idiom for side-effect-only mocks:
