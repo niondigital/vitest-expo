@@ -49,3 +49,7 @@ The major version tracks the Expo SDK the release is verified against (`57.x` �
 2. Tag the commit `v<version>` and push the tag — the release workflow runs the unit tests, the spec-drift gate and the conformance suites, then publishes to npm with provenance.
 
 Publishing by hand (`npm publish --workspaces=false`) works too; `prepublishOnly` builds first.
+
+## License of contributions
+
+The project is MIT-licensed and copyright is held by nion digital GmbH. Contributions are accepted under the same MIT license — opening a pull request means you are fine with your change being distributed that way. There is no CLA to sign.
