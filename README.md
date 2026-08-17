@@ -164,10 +164,9 @@ Node 20 or newer. npm, pnpm, yarn (`nodeLinker: node-modules`) and bun layouts a
 
 ## Why trust it
 
-- **Every release is checked against jest-expo itself.** [`examples/app`](./examples/app) is one Expo app whose suite runs under *both* runners on iOS, Android and Web — any divergence fails CI, on Node 20 and 22, Linux and Windows.
-- **It carries a production app.** A real Expo codebase runs its full suite — 54 files, ~500 tests — with jest-expo removed entirely.
-- **Field-tested on other people's code.** Seven public and private Expo projects migrated with `npx vitest-expo migrate`; most needed no manual change at all.
-- **Faster where it counts.** Across those seven suites, cold runs were faster everywhere at less than half the CPU, and warm runs faster in six of seven.
+- **Every release is checked against the reference runner.** [`examples/app`](./examples/app) is one Expo app whose suite runs under *both* runners on iOS, Android and Web — any divergence fails CI, on Node 20 and 22, Linux and Windows.
+- **Built against real apps, and field-tested on other people's code.** Nine codebases so far: seven public Expo projects migrated with `npx vitest-expo migrate` — most needing no manual change at all — plus two apps in active development, one of which runs its entire suite of ~500 tests on it.
+- **Faster where it counts.** Across the measured suites, cold runs were faster everywhere at less than half the CPU, and warm runs faster in six of seven.
 
 Built on [vitest-native](https://github.com/danfry1/vitest-native), which carries the React Native core.
 
