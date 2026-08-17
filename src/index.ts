@@ -9,7 +9,7 @@ import {
 } from 'vitest-native/jest-compat';
 import { transformWithEsbuild, type Plugin } from 'vite';
 import { syntaxCompatPlugin } from './syntax-compat';
-import { consoleNoiseFilter } from './runtime/console-noise';
+import { consoleNoiseFilter, type ConsoleNoiseOptions } from './runtime/console-noise';
 import { debug } from './runtime/debug';
 
 type ReactNativeOptions = NonNullable<Parameters<typeof reactNative>[0]>;
@@ -38,6 +38,33 @@ export interface VitestExpoOptions {
    * allowlist — applied on both module graphs.
    */
   transformPackages?: string[];
+  /**
+   * Packages whose duplicate-resolution diagnostic has been reviewed and
+   * accepted. Naming a package here silences it for good; every *other*
+   * package that starts resolving to two files still gets reported, so an
+   * acknowledged list keeps the warning meaningful instead of teaching the
+   * team to scroll past it.
+   *
+   *   vitestExpo({ acknowledgedDuplicates: ['redux', 'ramda'] })
+   *
+   * Accept a package once you have checked that no test relies on state being
+   * shared through it — MIGRATION.md shows the identity check, and the alias
+   * that collapses the two copies when it does matter.
+   */
+  acknowledgedDuplicates?: string[];
+  /**
+   * Console output to drop, for warnings a library emits that carry no signal
+   * in a test run — a render-performance heuristic complaining about the fast
+   * re-renders a test does on purpose, for instance. Matched against the start
+   * of the message for strings, anywhere in it for regular expressions.
+   *
+   *   vitestExpo({ silenceWarnings: [/in short periods of time/] })
+   *
+   * Kept as project configuration on purpose: which third-party noise is
+   * irrelevant depends on the app, so it does not belong in a list this
+   * package ships.
+   */
+  silenceWarnings?: (string | RegExp)[];
 }
 
 /**
@@ -53,10 +80,14 @@ export interface VitestExpoOptions {
 export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   const platform = options.platform ?? 'ios';
   const jestCompat = options.jestCompat ?? true;
+  const noise = {
+    acknowledgedDuplicates: options.acknowledgedDuplicates,
+    silenceWarnings: options.silenceWarnings,
+  };
   const transformPackages = options.transformPackages ?? [];
 
   if (platform === 'web') {
-    return webPlugins(jestCompat);
+    return webPlugins(jestCompat, noise);
   }
 
   const rn = reactNative({
@@ -138,7 +169,7 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
         test: {
           // Drops output that repeats per test file without saying anything
           // per file (see runtime/console-noise).
-          onConsoleLog: consoleNoiseFilter((userConfig as any).test?.onConsoleLog),
+          onConsoleLog: consoleNoiseFilter((userConfig as any).test?.onConsoleLog, noise),
           server: {
             deps: {
               // vitest-expo itself imports expo-router internals, which import
@@ -250,7 +281,7 @@ export function vitestExpoProjects(options: VitestExpoProjectsOptions = {}) {
  * entirely; what remains is aliasing, web-first extension resolution and a
  * small runtime setup.
  */
-function webPlugins(jestCompat: boolean): Plugin[] {
+function webPlugins(jestCompat: boolean, noise: ConsoleNoiseOptions): Plugin[] {
   const webPlugin: Plugin = {
     name: 'vitest-expo:web',
     config(userConfig) {
@@ -291,7 +322,7 @@ function webPlugins(jestCompat: boolean): Plugin[] {
           ],
         },
         test: {
-          onConsoleLog: consoleNoiseFilter((userConfig as any).test?.onConsoleLog),
+          onConsoleLog: consoleNoiseFilter((userConfig as any).test?.onConsoleLog, noise),
           environment: 'jsdom',
           server: {
             deps: {

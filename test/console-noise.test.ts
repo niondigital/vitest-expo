@@ -58,3 +58,27 @@ describe('a filter the project configured', () => {
     expect(filter('SafeAreaView has been deprecated and will be removed in a future release', 'stderr')).toBe(false);
   });
 });
+
+describe('acknowledged duplicates', () => {
+  it('never reports a package the project has accepted', () => {
+    const filter = consoleNoiseFilter(undefined, { acknowledgedDuplicates: ['redux'] });
+    expect(filter(DUPLICATE('redux'), 'stderr')).toBe(false);
+    expect(filter(DUPLICATE('redux'), 'stderr')).toBe(false);
+  });
+
+  it('still reports a package that is not on the list', () => {
+    const filter = consoleNoiseFilter(undefined, { acknowledgedDuplicates: ['redux'] });
+    expect(filter(DUPLICATE('ramda'), 'stderr')).toBeUndefined();
+  });
+});
+
+describe('silenceWarnings', () => {
+  it('drops messages matching a string prefix or a pattern', () => {
+    const filter = consoleNoiseFilter(undefined, {
+      silenceWarnings: ['You seem to update props', /in short periods of time/],
+    });
+    expect(filter('You seem to update props of the "X" component', 'stderr')).toBe(false);
+    expect(filter('Updating the renderersProps prop in short periods of time', 'stderr')).toBe(false);
+    expect(filter('Something else entirely', 'stderr')).toBeUndefined();
+  });
+});

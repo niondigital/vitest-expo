@@ -456,6 +456,19 @@ resolve: {
 
 Verify with an identity check in a scratch test (`createRequire(import.meta.url)('redux').createStore === createStore`). Note that the engine keeps reporting the package afterwards — its check compares Node against Vite's field order and does not account for the alias — so trust the identity check, not the message. Pinning a file inside a package is brittle across upgrades, so it is worth doing for packages whose state your tests actually cross, not pre-emptively.
 
+Once a package has been reviewed, say so in the config instead of scrolling past the line — anything *new* still gets reported, which is what keeps the diagnostic worth reading:
+
+```ts
+vitestExpo({
+  acknowledgedDuplicates: ['redux', 'redux-persist'],
+  // Library warnings that carry no signal in a test run, e.g. a render
+  // performance heuristic tripped by the fast re-renders a test does on purpose.
+  silenceWarnings: [/in short periods of time/],
+})
+```
+
+`silenceWarnings` takes strings (matched from the start of the message) or patterns. Which third-party noise is irrelevant depends on the app, so nothing beyond React Native's own artifacts is silenced by default. A `test.onConsoleLog` of your own keeps working and runs first.
+
 **`An update to <Component> inside a test was not wrapped in act(...)`** — a `render()` whose result is used without `await`. Since `@testing-library/react-native` 14 the render is async, so the commit lands outside `act`. Watch for render helpers: a helper that does `return render(...)` hands the promise on, and every caller needs the `await` too.
 
 ## When something fails only under Vitest

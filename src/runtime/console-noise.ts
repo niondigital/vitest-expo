@@ -39,12 +39,24 @@ const DUPLICATE_RESOLUTION = /^\[vitest-native\] '([^']+)' resolves to two diffe
 
 export type ConsoleLogFilter = (log: string, type: 'stdout' | 'stderr') => boolean | void;
 
+export interface ConsoleNoiseOptions {
+  /** Packages whose duplicate resolution has been reviewed — never reported again. */
+  acknowledgedDuplicates?: string[];
+  /** Project-specific noise: matched by prefix for strings, anywhere for patterns. */
+  silenceWarnings?: (string | RegExp)[];
+}
+
 /**
  * Builds the onConsoleLog handler, chaining a handler the project may already
  * have configured: an explicit `false` from the project still wins.
  */
-export function consoleNoiseFilter(existing?: ConsoleLogFilter): ConsoleLogFilter {
+export function consoleNoiseFilter(
+  existing?: ConsoleLogFilter,
+  options: ConsoleNoiseOptions = {}
+): ConsoleLogFilter {
   const reportedDuplicates = new Set<string>();
+  const acknowledged = new Set(options.acknowledgedDuplicates ?? []);
+  const silenced = options.silenceWarnings ?? [];
 
   return (log, type) => {
     if (existing) {
@@ -54,8 +66,19 @@ export function consoleNoiseFilter(existing?: ConsoleLogFilter): ConsoleLogFilte
 
     if (REACT_NATIVE_NOTICES.some((notice) => log.startsWith(notice))) return false;
 
+    if (
+      silenced.some((pattern) =>
+        typeof pattern === 'string' ? log.startsWith(pattern) : pattern.test(log)
+      )
+    ) {
+      return false;
+    }
+
     const duplicate = DUPLICATE_RESOLUTION.exec(log);
     if (duplicate) {
+      // Acknowledged packages stay quiet; anything new still gets its one report,
+      // which is what keeps the diagnostic worth reading.
+      if (acknowledged.has(duplicate[1])) return false;
       if (reportedDuplicates.has(duplicate[1])) return false;
       reportedDuplicates.add(duplicate[1]);
     }
