@@ -23,9 +23,14 @@ function scan(source: string, options: { setup?: boolean; mocks?: boolean; alias
 }
 
 describe('scanFile', () => {
-  it('reports a destructured render() without await, and leaves awaited ones alone', () => {
+  it('reports a render() result used without await, and leaves awaited ones alone', () => {
     expect(scan('const { getByText } = render(<A />);')).toContain('sync-render-destructure');
+    expect(scan('let tree = render(<A />);')).toContain('sync-render-destructure');
+    expect(scan('  return render(<A />);')).toContain('sync-render-destructure');
+
     expect(scan('const { getByText } = await render(<A />);')).not.toContain('sync-render-destructure');
+    expect(scan('const tree = await render(<A />);')).not.toContain('sync-render-destructure');
+    expect(scan('  return await render(<A />);')).not.toContain('sync-render-destructure');
     expect(scan('await render(<A />);')).not.toContain('sync-render-destructure');
   });
 

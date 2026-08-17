@@ -86,7 +86,7 @@ export const PATTERNS: Record<PatternId, PatternInfo> = {
   },
   'sync-render-destructure': {
     title: 'render() result used without await',
-    hint: 'render() is async since @testing-library/react-native 14 — destructuring the promise yields undefined queries. Use `await render(...)` and the `screen` queries.',
+    hint: 'render() is async since @testing-library/react-native 14. Destructured queries come off the promise and are undefined; a result used directly renders outside act, which React reports as an unwrapped update. Use `await render(...)` and the `screen` queries — including inside render helpers.',
     anchor: '#async-render',
     severity: 'check',
   },
@@ -263,9 +263,18 @@ export function scanFile(root: string, source_: SourceFile, aliasPrefixes: strin
   matchAll(source, /\b(?:jest|vi)\.mock\(\s*['\"][^'\"]+['\"]\s*,\s*\(\)\s*=>\s*\{\s*\}\s*\)/g, (index) =>
     add('empty-mock-factory', index)
   );
-  // A destructured render() result without await breaks under async render
-  // (RNTL >= 14): the queries come off the promise and are undefined.
-  matchAll(source, /(?<!await\s)(?:const|let|var)\s*\{[^}]*\}\s*=\s*render\s*\(/g, (index) =>
+  // A render() result used without await breaks under async render (RNTL >= 14):
+  // destructured queries come off the promise and are undefined, and a result
+  // used directly commits its render outside act — which React reports as
+  // "An update to X inside a test was not wrapped in act(...)".
+  matchAll(
+    source,
+    /(?<!await\s)(?:const|let|var)\s*(?:\{[^}]*\}|[A-Za-z_$][\w$]*)\s*=\s*render\s*\(/g,
+    (index) => add('sync-render-destructure', index)
+  );
+  // The same call wrapped in a helper: the helper hands the promise on, so the
+  // await has to be added at both ends.
+  matchAll(source, /(?<!await\s)return\s+render\s*\(/g, (index) =>
     add('sync-render-destructure', index)
   );
   matchAll(source, /\bPlatform\.OS\s*=(?!=)/g, (index) => add('platform-os-assignment', index));

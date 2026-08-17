@@ -9,6 +9,7 @@ import {
 } from 'vitest-native/jest-compat';
 import { transformWithEsbuild, type Plugin } from 'vite';
 import { syntaxCompatPlugin } from './syntax-compat';
+import { consoleNoiseFilter } from './runtime/console-noise';
 import { debug } from './runtime/debug';
 
 type ReactNativeOptions = NonNullable<Parameters<typeof reactNative>[0]>;
@@ -135,6 +136,9 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
       return {
         ...(jestCompat ? { resolve: { alias: jestCompatAliases() } } : {}),
         test: {
+          // Drops output that repeats per test file without saying anything
+          // per file (see runtime/console-noise).
+          onConsoleLog: consoleNoiseFilter((userConfig as any).test?.onConsoleLog),
           server: {
             deps: {
               // vitest-expo itself imports expo-router internals, which import
@@ -287,6 +291,7 @@ function webPlugins(jestCompat: boolean): Plugin[] {
           ],
         },
         test: {
+          onConsoleLog: consoleNoiseFilter((userConfig as any).test?.onConsoleLog),
           environment: 'jsdom',
           server: {
             deps: {

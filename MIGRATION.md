@@ -417,15 +417,30 @@ plugins: [vitestExpo({ transformPackages: ['react-native-some-library'] })],
 
 Reach for the narrowest one that works: a preset extension survives a library upgrade better than a hand-written module mock, and a native-module mock keeps the library's own JavaScript under test.
 
-### Warnings that look like failures
+### Output that looks like a failure
 
-Two lines in the output are diagnostics, not errors — but they make a green run look broken.
+**`Your Vite config uses features that are unsupported by configLoader: 'native'`** — an Expo app's `package.json` has no `"type": "module"`, so Node reads `vitest.config.ts` as CommonJS while the file uses `import`/`export default`. Name the config `vitest.config.mts` and it is unambiguous. Two consequences: use `import.meta.dirname` instead of `__dirname`, and add `"**/*.mts"` to `include` in `tsconfig.json` if the config should be type-checked. `vitest-expo init` and `migrate` write `.mts` for this reason.
 
-**`Your Vite config uses features that are unsupported by configLoader: 'native'`** — an Expo app's `package.json` has no `"type": "module"`, so Node reads `vitest.config.ts` as CommonJS while the file uses `import`/`export default`. Name the config `vitest.config.mts` and it is unambiguous. Two consequences: use `import.meta.dirname` instead of `__dirname`, and add `"**/*.mts"` to the `include` list in `tsconfig.json` if the config should be type-checked. `vitest-expo init` and `migrate` write `.mts` for this reason.
+**React Native deprecation notices** (`SafeAreaView has been deprecated`, `Clipboard has been extracted`, …) are suppressed. React Native exposes those names as getters that warn when read, and building a module namespace for `react-native` reads all of them — so they fired once per test file while saying nothing about the app. jest-expo never shows them, and neither does this.
 
-**`'<package>' resolves to two different files`** — Node's `require` and Vite picked different entry files for the same package (typically `lib/index.js` against `es/index.js` in a package without an `exports` field). Nothing fails yet, but if both module systems load it, module-level state exists twice: a store written through one copy reads back unset through the other. The line appears only for packages that are actually loaded on the Node side. Make both resolvers agree with `resolve.mainFields`, or keep the package on one side by importing it from your app code only.
+**`'<package>' resolves to two different files`** — Node's `require` and Vite picked different entry files for the same package, so it exists twice with separate module-level state. This one is real, and it is reported once per package instead of once per test file.
 
-**React Native deprecation notices** (`SafeAreaView has been deprecated`, `Clipboard has been extracted`, …) come from React Native itself: its entry module exposes those names as getters that warn when touched, and building the module namespace touches every one of them. They say nothing about your test.
+Whether it matters depends on the package: two copies of a pure function library are harmless, two copies of something holding state — a store, a registry, a client singleton — are not, and the failure is silent (a value written through one copy reads back unset through the other). It appears when a React Native package that the engine loads through Node depends on the same package your app imports through Vite.
+
+To collapse the two copies into one, point Vite at the file Node resolved — the second line of the message says which:
+
+```ts
+// vitest.config.mts
+resolve: {
+  alias: [
+    { find: /^redux$/, replacement: path.join(import.meta.dirname, 'node_modules/redux/dist/cjs/redux.cjs') },
+  ],
+},
+```
+
+Verify with an identity check in a scratch test (`createRequire(import.meta.url)('redux').createStore === createStore`). Note that the engine keeps reporting the package afterwards — its check compares Node against Vite's field order and does not account for the alias — so trust the identity check, not the message. Pinning a file inside a package is brittle across upgrades, so it is worth doing for packages whose state your tests actually cross, not pre-emptively.
+
+**`An update to <Component> inside a test was not wrapped in act(...)`** — a `render()` whose result is used without `await`. Since `@testing-library/react-native` 14 the render is async, so the commit lands outside `act`. Watch for render helpers: a helper that does `return render(...)` hands the promise on, and every caller needs the `await` too.
 
 ## When something fails only under Vitest
 
