@@ -15,9 +15,9 @@ The version now tracks the Expo SDK it is verified against, the way jest-expo do
 - The plugin warns when the project's Expo SDK major differs from the package major.
 - `DEBUG=vitest-expo` reports what the optional fallbacks skipped and why.
 
-## 0.1.0
+## 0.1.0 — never published
 
-Initial release.
+Renumbered to 57.0.0 before the first public release; everything below is part of it.
 
 - `vitestExpo()` plugin preset: wraps vitest-native's `reactNative()`, adds Expo env parity (`EXPO_OS`, router import mode), inlines TS-only Expo packages, injects the runtime setup.
 - Real app config in tests: `Constants.expoConfig` is read via `@expo/config` (app.config.js/ts) with an app.json fallback — `Linking.createURL()` works with the real scheme.

@@ -18,7 +18,7 @@ the patterns that need a hand. Existing files are never overwritten unless
 asked for.
 
 Options
-  --force        overwrite an existing vitest.config.ts
+  --force        overwrite an existing vitest.config.mts
   --fix          apply the safe auto-fixes (jest.doMock -> jest.mock in setup files)
   --replace      do not keep the Jest run as the "test:jest" script
   --dry-run      report only; write nothing

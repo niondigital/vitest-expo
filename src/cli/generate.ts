@@ -10,7 +10,7 @@ export interface ConfigInput {
 }
 
 /**
- * Emits the vitest.config.ts a jest-expo project needs: the plugin preset,
+ * Emits the vitest.config.mts a jest-expo project needs: the plugin preset,
  * Jest's globals, and whatever the Jest config carried that has a direct
  * equivalent.
  */

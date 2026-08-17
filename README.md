@@ -3,7 +3,7 @@
 [![CI](https://github.com/niondigital/vitest-expo/actions/workflows/ci.yml/badge.svg)](https://github.com/niondigital/vitest-expo/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/vitest-expo)](https://www.npmjs.com/package/vitest-expo)
 [![Expo SDK 57](https://img.shields.io/badge/Expo%20SDK-57-000)](https://docs.expo.dev/)
-[![license MIT](https://img.shields.io/npm/l/vitest-expo)](./LICENSE)
+[![license MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 **Test your Expo app with Vitest** — iOS, Android and Web. Real React Native, the testing-library API you know, no test-config maintenance.
 

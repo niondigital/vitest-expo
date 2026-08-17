@@ -12,7 +12,7 @@ Plan on two steps: get the config across (mostly automated), then work through t
 npx vitest-expo migrate
 ```
 
-Run this in the project root, next to `package.json`. It reads the Jest config, writes `vitest.config.ts`, points the `test` script at Vitest while keeping the Jest run as `test:jest`, and prints a report of everything it could not translate.
+Run this in the project root, next to `package.json`. It reads the Jest config, writes `vitest.config.mts`, points the `test` script at Vitest while keeping the Jest run as `test:jest`, and prints a report of everything it could not translate.
 
 ```bash
 npm install -D vitest-expo vitest vitest-native @testing-library/react-native test-renderer
@@ -31,11 +31,11 @@ Add the types once, so `describe`/`it`/`expect` and the React Native Testing Lib
 
 | | |
 |---|---|
-| `vitest.config.ts` | written from the Jest config: plugin preset, `globals: true`, `setupFiles` (`setupFiles` + `setupFilesAfterEnv`, in that order), `resolve.alias` from tsconfig `paths` and translatable `moduleNameMapper` entries, `test.exclude` from path-shaped `testPathIgnorePatterns` |
+| `vitest.config.mts` | written from the Jest config (`.mts` so the config is ESM regardless of the project's package type): plugin preset, `globals: true`, `setupFiles` (`setupFiles` + `setupFilesAfterEnv`, in that order), `resolve.alias` from tsconfig `paths` and translatable `moduleNameMapper` entries, `test.exclude` from path-shaped `testPathIgnorePatterns` |
 | `package.json` | `test` becomes `vitest run` (an environment prefix such as `TZ=UTC` is kept); the previous command moves to `test:jest` |
 | everything else | reported, not changed |
 
-Existing files are never overwritten: re-run with `--force` to replace a `vitest.config.ts`, `--replace` to drop the `test:jest` script, `--dry-run` to see the report without writing, `--fix` to apply the one safe rewrite (`jest.doMock` → `jest.mock` in setup files). Jest devDependencies are listed as removable but never removed — keep them until both runners agree.
+Existing files are never overwritten: re-run with `--force` to replace a `vitest.config.mts`, `--replace` to drop the `test:jest` script, `--dry-run` to see the report without writing, `--fix` to apply the one safe rewrite (`jest.doMock` → `jest.mock` in setup files). Jest devDependencies are listed as removable but never removed — keep them until both runners agree.
 
 Config files that cannot be read without executing them (TypeScript, ESM, or computed values) are read statically instead. The command says so when that happens; check the generated config in that case.
 
