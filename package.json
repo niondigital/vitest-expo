@@ -66,7 +66,8 @@
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:conformance": "npm run build && npm run test --workspace app",
-    "check-spec-drift": "node scripts/check-spec-drift.mjs"
+    "check-spec-drift": "node scripts/check-spec-drift.mjs",
+    "pack:local": "npm run build && npm pack --workspaces=false --pack-destination /tmp"
   },
   "dependencies": {
     "@oxc-project/runtime": "^0.144.0",

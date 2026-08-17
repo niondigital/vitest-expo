@@ -12,7 +12,7 @@ Work in this order. Never proceed to the next phase with a red suite.
 
 1. Run `npx vitest-expo migrate --fix`. It writes `vitest.config.mts`, rewires the `test` script, applies the safe rewrites and prints a report.
 2. Install exactly what the report's install line says.
-3. Apply the tsconfig hint (`"types": ["expo/types", "vitest-expo/types"]`) and remove `"jest"`/`@types/jest` from `compilerOptions.types` if present.
+3. Set `"types": ["vitest-expo/types"]` and remove `"jest"`/`@types/jest`. Add `"expo/types"` as well only if the project already had it — introducing it during a migration surfaces unrelated app-code type errors (Expo types `process.env.*` as possibly undefined).
 4. Run the suite. Fix the patterns the report flagged (each links to a MIGRATION.md section). Regenerate snapshots exactly once (`vitest run -u`) when snapshot mismatches are the only remaining failure class — review the diff before accepting.
 5. **Gate:** the full suite is green and the pass counts match the old Jest run. Record both counts.
 
@@ -38,6 +38,9 @@ Rewrite one test/setup file at a time and re-run that file before moving on. App
 | `(useColorScheme as jest.Mock).mockReturnValue(x)` | `setColorScheme(x)` from `'vitest-native/helpers'` |
 | `jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'))` | delete — the built-in preset covers reanimated; fill gaps with `extendPresetMock` from `'vitest-expo/helpers'` |
 | `Platform.OS = 'android'` | delete; platform is config-level (`vitestExpo({ platform })`, one config or one project per platform) |
+| `require('x')` inside a mock factory | `async () => { const x = await import('x'); … }` — a factory is a module in the Vite graph, and `require` does not exist there |
+| a factory returning a component: `() => (props) => <View />` | return a module shape: `() => ({ default: (props) => <View /> })` — Jest tolerated the bare value, Vitest asks for the namespace |
+| `items.forEach(async (x) => { await render(…) })` | `for (const x of items) { await render(…) }` — `forEach` drops the promise, so the assertions run after the test ends |
 | library-documented Jest setup (e.g. `require('react-native-gesture-handler/jestSetup')`, async-storage/safe-area jest mocks) | delete when a built-in preset covers the library (gesture-handler, safe-area, async-storage, reanimated, screens, navigation do); otherwise keep the mock but express it as `vi.mock` |
 
 Rules while rewriting:

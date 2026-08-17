@@ -27,6 +27,9 @@ Add the types once, so `describe`/`it`/`expect` and the React Native Testing Lib
 { "compilerOptions": { "types": ["expo/types", "vitest-expo/types"] } }
 ```
 
+`vitest-expo/types` on its own covers the test globals and the RNTL matchers. Adding `expo/types` alongside it is Expo's own recommendation and worth having, but note what it does in a project whose `types` array previously excluded it: Expo's definitions type `process.env.*` as possibly undefined, so pre-existing env access in app code starts failing the type check. That is a real finding about the app, unrelated to testing — fix it separately rather than during the migration.
+
+
 ### What the command does
 
 | | |
