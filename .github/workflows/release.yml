@@ -19,8 +19,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
           registry-url: https://registry.npmjs.org
+      # Node 22 ships npm 10; publishing over OIDC (trusted publishing) needs
+      # npm 11.5.1 or newer.
+      - name: Use a publish-capable npm
+        run: npm install -g npm@^11
       - run: npm ci
       - name: Tag matches the package version
         run: |
