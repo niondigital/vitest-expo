@@ -119,6 +119,18 @@ export function migrate(options: MigrateOptions): number {
     manual.push(`testPathIgnorePatterns "${skip.pattern}": ${skip.reason}.`);
   }
 
+  // Babel plugins do not run in the Vite pipeline — module-resolver aliases
+  // are the one babel.config.js feature that silently changes resolution.
+  for (const name of ['babel.config.js', 'babel.config.cjs', '.babelrc', '.babelrc.js']) {
+    const file = path.join(root, name);
+    if (fs.existsSync(file) && fs.readFileSync(file, 'utf8').includes('module-resolver')) {
+      manual.push(
+        `${name} configures babel-plugin-module-resolver — Babel plugins don't apply under Vitest; mirror those aliases in the resolve.alias of vitest.config.mts (see MIGRATION.md#path-aliases-in-babelconfigjs).`
+      );
+      break;
+    }
+  }
+
   /* -- 3. package.json scripts ------------------------------------------ */
 
   heading('package.json scripts');

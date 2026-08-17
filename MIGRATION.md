@@ -283,6 +283,24 @@ expect(screen.getByText('Hello')).toBeOnTheScreen();
 
 Suites staying on RNTL 13 are unaffected — both majors are supported.
 
+### Path aliases in babel.config.js
+
+App code is transformed by Vite, so Babel plugins from the project's `babel.config.js` do not run. The one plugin that silently changes module resolution is `babel-plugin-module-resolver` — mirror its aliases in the Vitest config instead:
+
+```ts
+// babel.config.js had: alias: { '@components': './src/components' }
+export default defineConfig({
+  plugins: [vitestExpo()],
+  resolve: {
+    alias: [{ find: /^@components\//, replacement: '/src/components/' }],
+  },
+});
+```
+
+Projects that keep the same aliases in `tsconfig.json` `paths` (most do, for the editor) are already covered — the migrate command derives `resolve.alias` from there.
+
+Babel-only *syntax* needs no config: `export default from` re-exports and Flow-annotated `.js` files (with an `@flow` pragma) transform out of the box. Legacy decorators work once `experimentalDecorators` is set in `tsconfig.json` — which decorator-using projects already have for type-checking.
+
 ## Snapshots
 
 Existing jest-expo snapshots need one regeneration:

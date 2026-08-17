@@ -44,6 +44,16 @@ export function installNodeResolutionFallback(): void {
           if (isFile(base + suffix)) return base + suffix;
         }
       }
+      // Transform-emitted helper imports (Oxc's decorator lowering) live in
+      // vitest-expo's own dependency tree — the app doesn't depend on them,
+      // and strict-isolation package managers don't hoist them into its reach.
+      if (request.startsWith('@oxc-project/runtime/')) {
+        try {
+          return createRequire(import.meta.url).resolve(request);
+        } catch {
+          // fall through to the original error
+        }
+      }
       // Aliased specifiers appear transitively in Node-loaded app code
       // (a requireActual'd module importing '@/…' itself).
       const expanded = expandAlias(request);

@@ -2,7 +2,10 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "types": ["expo/types", "vitest-expo/types"],
+    "types": [
+      "expo/types",
+      "vitest-expo/types"
+    ],
     "paths": {
       "@/*": [
         "./src/*"
@@ -10,7 +13,8 @@
       "@/assets/*": [
         "./assets/*"
       ]
-    }
+    },
+    "experimentalDecorators": true
   },
   "include": [
     "**/*.ts",

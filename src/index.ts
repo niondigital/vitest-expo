@@ -8,6 +8,7 @@ import {
   jestMockTransform,
 } from 'vitest-native/jest-compat';
 import { transformWithEsbuild, type Plugin } from 'vite';
+import { syntaxCompatPlugin } from './syntax-compat';
 
 type ReactNativeOptions = NonNullable<Parameters<typeof reactNative>[0]>;
 
@@ -192,7 +193,13 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     },
   };
 
-  return [rn, ...(jestCompat ? [jestMockTransform()] : []), jsxInJsPlugin, expoPlugin].flat();
+  return [
+    rn,
+    ...(jestCompat ? [jestMockTransform()] : []),
+    syntaxCompatPlugin(),
+    jsxInJsPlugin,
+    expoPlugin,
+  ].flat();
 }
 
 export type VitestExpoPlatform = NonNullable<VitestExpoOptions['platform']>;
@@ -289,7 +296,7 @@ function webPlugins(jestCompat: boolean): Plugin[] {
     },
   };
 
-  return [...(jestCompat ? [jestMockTransform()] : []), webPlugin];
+  return [...(jestCompat ? [jestMockTransform()] : []), syntaxCompatPlugin(), webPlugin];
 }
 
 /**
