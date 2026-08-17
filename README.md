@@ -160,7 +160,7 @@ The major version tracks the Expo SDK it is verified against, the way jest-expo 
 |---|---|---|---|---|
 | 57.x | 57 | 0.86 | 4 | 13 · 14 |
 
-Node 20 or newer. npm, pnpm, yarn (`nodeLinker: node-modules`) and bun layouts are covered by CI; Yarn Plug'n'Play is not supported.
+Node 20 or newer. Install layouts are verified against a packed release — npm, pnpm and yarn (`nodeLinker: node-modules`) on every CI run, bun with the same script by hand. Yarn Plug'n'Play is not supported.
 
 ## Why trust it
 
