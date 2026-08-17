@@ -281,6 +281,22 @@ await render(<Greeting />);
 expect(screen.getByText('Hello')).toBeOnTheScreen();
 ```
 
+One trap comes with the awaits: a loop callback. `forEach` and `map` drop the promise an async callback returns, so the awaited render — and every assertion after it — runs detached, after the test has already ended. The test then passes without asserting anything, and Vitest reports an unhandled rejection instead:
+
+```tsx
+// wrong: the assertions run after the test, against an unmounted tree
+modes.forEach(async (mode) => {
+  await render(<Gauge mode={mode} />);
+  expect(screen.getByTestId('gauge')).toBeOnTheScreen();
+});
+
+// right
+for (const mode of modes) {
+  await render(<Gauge mode={mode} />);
+  expect(screen.getByTestId('gauge')).toBeOnTheScreen();
+}
+```
+
 Suites staying on RNTL 13 are unaffected — both majors are supported. Note the renderer package differs between them: RNTL 14 peers on the standalone `test-renderer`, RNTL 13 on `react-test-renderer` at the project's React version. npm installs that peer on its own; yarn and strict pnpm layouts need it declared.
 
 ### Path aliases in babel.config.js

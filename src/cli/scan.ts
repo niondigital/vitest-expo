@@ -19,7 +19,8 @@ export type PatternId =
   | 'dynamic-cjs-mock'
   | 'empty-mock-factory'
   | 'lazy-require-mocked'
-  | 'sync-render-destructure';
+  | 'sync-render-destructure'
+  | 'async-loop-callback';
 
 export interface PatternInfo {
   title: string;
@@ -89,6 +90,12 @@ export const PATTERNS: Record<PatternId, PatternInfo> = {
     hint: 'render() is async since @testing-library/react-native 14. Destructured queries come off the promise and are undefined; a result used directly renders outside act, which React reports as an unwrapped update. Use `await render(...)` and the `screen` queries — including inside render helpers.',
     anchor: '#async-render',
     severity: 'check',
+  },
+  'async-loop-callback': {
+    title: 'async callback passed to forEach/map',
+    hint: 'forEach ignores the promise an async callback returns, so awaited renders and the assertions after them run detached — after the test has ended. Use a for-of loop.',
+    anchor: '#async-render',
+    severity: 'change',
   },
   'dynamic-cjs-mock': {
     title: 'dynamically computed CJS exports in a __mocks__ file',
@@ -277,6 +284,10 @@ export function scanFile(root: string, source_: SourceFile, aliasPrefixes: strin
   matchAll(source, /(?<!await\s)return\s+render\s*\(/g, (index) =>
     add('sync-render-destructure', index)
   );
+  // An async callback handed to forEach/map: the promise is dropped, so an
+  // awaited render inside it — and every assertion after that await — runs
+  // after the test has already finished.
+  matchAll(source, /\.(?:forEach|map)\(\s*async\b/g, (index) => add('async-loop-callback', index));
   matchAll(source, /\bPlatform\.OS\s*=(?!=)/g, (index) => add('platform-os-assignment', index));
 
   matchAll(

@@ -34,6 +34,13 @@ describe('scanFile', () => {
     expect(scan('await render(<A />);')).not.toContain('sync-render-destructure');
   });
 
+  it('reports an async callback handed to forEach or map', () => {
+    expect(scan('items.forEach(async (item) => { await render(<A />); });')).toContain('async-loop-callback');
+    expect(scan('const all = items.map(async (item) => load(item));')).toContain('async-loop-callback');
+    expect(scan('for (const item of items) { await render(<A />); }')).not.toContain('async-loop-callback');
+    expect(scan('items.forEach((item) => render(<A />));')).not.toContain('async-loop-callback');
+  });
+
   it('reports Platform.OS assignment but not comparison', () => {
     expect(scan("Platform.OS = 'android';")).toContain('platform-os-assignment');
     expect(scan("if (Platform.OS === 'android') {}")).not.toContain('platform-os-assignment');
@@ -99,6 +106,7 @@ describe('PATTERNS metadata', () => {
       'empty-mock-factory',
       'lazy-require-mocked',
       'sync-render-destructure',
+      'async-loop-callback',
     ]);
     expect(new Set(Object.keys(PATTERNS))).toEqual(emitted);
     for (const info of Object.values(PATTERNS)) {
