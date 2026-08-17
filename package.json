@@ -4,7 +4,7 @@
   "description": "Test Expo apps with Vitest \u2014 a drop-in replacement for jest-expo, built on vitest-native.",
   "license": "MIT",
   "author": "Sebastian Weyrauch <sw@nion-digital.com>",
-  "bugs": "https://github.com/swey/vitest-expo/issues",
+  "bugs": "https://github.com/niondigital/vitest-expo/issues",
   "keywords": [
     "vitest",
     "expo",
@@ -95,6 +95,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/swey/vitest-expo.git"
+    "url": "git+https://github.com/niondigital/vitest-expo.git"
   }
 }

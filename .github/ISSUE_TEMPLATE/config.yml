@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Migration question
-    url: https://github.com/swey/vitest-expo/blob/main/MIGRATION.md
+    url: https://github.com/niondigital/vitest-expo/blob/main/MIGRATION.md
     about: The migration guide covers the patterns that need a change, with examples.
   - name: React Native engine issue
     url: https://github.com/danfry1/vitest-native/issues

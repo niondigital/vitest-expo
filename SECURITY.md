@@ -8,7 +8,7 @@ file writes.
 ## Reporting a vulnerability
 
 Report privately through GitHub's [security advisory
-form](https://github.com/swey/vitest-expo/security/advisories/new), or by email
+form](https://github.com/niondigital/vitest-expo/security/advisories/new), or by email
 to sw@nion-digital.com. Please do not open a public issue for a vulnerability.
 
 Expect an acknowledgement within a week. Fixes go out as a patch release of the

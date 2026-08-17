@@ -1,6 +1,6 @@
 # vitest-expo
 
-[![CI](https://github.com/swey/vitest-expo/actions/workflows/ci.yml/badge.svg)](https://github.com/swey/vitest-expo/actions/workflows/ci.yml)
+[![CI](https://github.com/niondigital/vitest-expo/actions/workflows/ci.yml/badge.svg)](https://github.com/niondigital/vitest-expo/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/vitest-expo)](https://www.npmjs.com/package/vitest-expo)
 [![Expo SDK 57](https://img.shields.io/badge/Expo%20SDK-57-000)](https://docs.expo.dev/)
 [![license MIT](https://img.shields.io/npm/l/vitest-expo)](./LICENSE)
@@ -211,4 +211,4 @@ The library lives at the repository root; [`examples/app`](./examples/app) is th
 
 ## License
 
-MIT
+MIT — maintained by [Sebastian Weyrauch](https://github.com/swey) at [nion digital](https://www.nion-digital.com).
