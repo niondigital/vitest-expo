@@ -48,7 +48,9 @@ The major version tracks the Expo SDK the release is verified against (`57.x` �
 1. Update `CHANGELOG.md` and the version in `package.json`.
 2. Tag the commit `v<version>` and push the tag — the release workflow runs the unit tests, the spec-drift gate and the conformance suites, then publishes to npm with provenance.
 
-Publishing by hand (`npm publish --workspaces=false`) works too; `prepublishOnly` builds first.
+The workflow authenticates over OIDC: npm has this repository and `release.yml` registered as a trusted publisher, so no npm token exists anywhere. Renaming the workflow file or moving the repository breaks that link and needs the trusted-publisher entry updated on npmjs.com.
+
+Publishing by hand (`npm publish --workspaces=false`) works too, but produces no provenance attestation — the registry only issues those for a publish from a recognized CI.
 
 ## License of contributions
 
