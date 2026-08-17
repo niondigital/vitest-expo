@@ -66,7 +66,12 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     // Metro treats .xml as an asset (Android vector drawables — expo-router
     // ships arrow_right.xml etc.); vitest-native's default list lacks it.
     assetExts: ['.xml', ...(options.reactNative?.assetExts ?? [])],
-    transform: [...transformPackages, ...(options.reactNative?.transform ?? [])],
+    transform: [
+      ...transformPackages,
+      ...UNSHADOWED_EXPO_PACKAGES,
+      ...(options.reactNative?.transform ?? []),
+    ],
+    presets: withoutExpoPreset(options.reactNative?.presets),
   });
 
   // Vite-graph counterpart of the `transform` allowlist: packages shipping
@@ -163,6 +168,9 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
             EXPO_PROJECT_ROOT: root,
             // Real app config for Constants.expoConfig (see modules/expo-constants).
             ...appConfigEnv(root),
+            // Native-module mocks shipped by Expo packages themselves
+            // (see runtime/package-native-mocks).
+            VITEST_EXPO_PACKAGE_MOCKS: JSON.stringify(findPackageNativeMocks(root)),
           },
         },
       };
@@ -290,6 +298,93 @@ function webPlugins(jestCompat: boolean): Plugin[] {
   };
 
   return [...(jestCompat ? [jestMockTransform()] : []), webPlugin];
+}
+
+/**
+ * Expo packages that run their REAL JavaScript in tests instead of a
+ * stand-in module. Each is plain JavaScript over a native-module boundary that
+ * this preset already mocks from data specs, so the package's own behavior —
+ * font loading states, asset metadata, splash-screen call semantics, manifest
+ * derivation — is reproduced rather than re-implemented, exactly as Jest's
+ * Expo preset does it.
+ *
+ * They are transformed on the Node side because their published `build/` files
+ * are ES modules that reach expo-modules-core through static imports; running
+ * them through the React Native Babel pipeline resolves that import against
+ * the mocked module boundary.
+ */
+const UNSHADOWED_EXPO_PACKAGES = [
+  'expo-constants',
+  'expo-font',
+  'expo-asset',
+  'expo-splash-screen',
+  'expo-linking',
+  'expo-status-bar',
+];
+
+/**
+ * Turns off the bundled `expo` library preset so the packages above are served
+ * by their own code (see UNSHADOWED_EXPO_PACKAGES).
+ *
+ * The array form of `presets` replaces detection entirely and is the caller's
+ * explicit choice, so it is passed through untouched.
+ */
+function withoutExpoPreset(
+  presets: ReactNativeOptions['presets']
+): ReactNativeOptions['presets'] {
+  if (Array.isArray(presets)) return presets;
+  return { ...presets, expo: false };
+}
+
+/**
+ * Locates the native-module mocks Expo packages ship for test runners: a
+ * `mocks/` directory whose files are named after the native modules they stand
+ * in for (`expo-font/mocks/ExpoFontLoader.ts`). They are the package author's
+ * own description of how the native side behaves in a test — richer and more
+ * current than any generic stub — so the runtime prefers them over generated
+ * ones (see runtime/package-native-mocks).
+ *
+ * Resolved here, at config time, because a per-test-file directory scan would
+ * be paid on every file.
+ */
+function findPackageNativeMocks(root: string): Record<string, string> {
+  const found: Record<string, string> = {};
+  const seenPackages = new Set<string>();
+
+  const collect = (packageDir: string) => {
+    const mocksDir = path.join(packageDir, 'mocks');
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(mocksDir);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const moduleName = entry.replace(/\.[cm]?[jt]sx?$/, '');
+      if (moduleName === entry || moduleName in found) continue;
+      found[moduleName] = path.join(mocksDir, entry);
+    }
+  };
+
+  for (let dir = path.resolve(root); ; dir = path.dirname(dir)) {
+    const nodeModules = path.join(dir, 'node_modules');
+    let packages: string[];
+    try {
+      packages = fs.readdirSync(nodeModules);
+    } catch {
+      packages = [];
+    }
+    for (const name of packages) {
+      // Only Expo packages ship this convention; skipping the rest keeps the
+      // scan to a handful of directory reads.
+      if (!name.startsWith('expo')) continue;
+      if (seenPackages.has(name)) continue;
+      seenPackages.add(name);
+      collect(path.join(nodeModules, name));
+    }
+    if (path.dirname(dir) === dir) break;
+  }
+  return found;
 }
 
 /**

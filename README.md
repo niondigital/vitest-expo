@@ -58,7 +58,7 @@ The CLI derives your Vitest config from the existing Jest config, rewires the sc
 
 - **One runner for your whole stack.** The same Vitest you use on web and backend — instant watch mode, native ESM and TypeScript, the Vite ecosystem.
 - **Tests run your app's real JavaScript.** The same React Native code that ships in the app executes in your tests; only the native boundary is mocked.
-- **The Expo SDK works out of the box.** Module mocks are generated from data specs — no per-library setup files, no transform allowlists to maintain.
+- **The Expo SDK works out of the box.** Expo packages run their own JavaScript over a native boundary that is mocked from data specs and from the mocks the packages ship themselves — no per-library setup files, no transform allowlists to maintain.
 - **Navigation is testable.** `vitest-expo/router` renders your expo-router screens and drives real navigation (see below).
 
 ## Mocking
@@ -83,8 +83,8 @@ vi.mock('@/services/orders', async (importOriginal) => ({
 
 For finer control:
 
-- `extendPresetMock(pkg, overrides)` from `vitest-expo/helpers` tweaks a built-in library preset (expo-constants, reanimated, …)
-- `mockNativeModule(name, impl)` from `vitest-native/helpers` stubs a single native module
+- `mockNativeModule(name, impl)` from `vitest-native/helpers` stubs a single native module — the Expo packages themselves run their real code, so this is where their behavior is steered
+- `extendPresetMock(pkg, overrides)` from `vitest-expo/helpers` tweaks a built-in library preset (reanimated, gesture-handler, …)
 - `transformPackages: ['pkg']` handles libraries shipping untranspiled JSX
 
 ## Testing navigation

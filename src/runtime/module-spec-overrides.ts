@@ -10,6 +10,10 @@ import type { ModuleSpec } from './expo-module-specs';
  * Everything here is a candidate for an upstream jest-expo PR: each entry
  * exists because the spec default (resolve/return undefined) breaks the
  * documented API contract of the package's own JS.
+ *
+ * A mock shipped by the package itself takes precedence over this overlay —
+ * the package author's description of its own native module is always the
+ * better source (see runtime/package-native-mocks).
  */
 export const MODULE_SPEC_OVERRIDES: Record<string, ModuleSpec> = {
   // Optional observability module: expo-image reads

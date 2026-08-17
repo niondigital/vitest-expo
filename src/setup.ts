@@ -13,8 +13,7 @@ import {
 } from './runtime/native-modules';
 import { installNodeResolutionFallback } from './runtime/node-resolution';
 import { installRequireActualAliases } from './runtime/require-actual-aliases';
-import { applyAppConfig, appScheme } from './modules/expo-constants';
-import { applyLinkingMocks } from './modules/expo-linking';
+import { applyAppConfig } from './modules/expo-constants';
 import { applySymbolsMock } from './modules/expo-symbols';
 
 expect.addSnapshotSerializer(jestExpoSnapshotSerializer);
@@ -34,8 +33,7 @@ installNodeResolutionFallback();
     ABSENT_NATIVE_MODULES.has(name) ? null : originalGet(name);
 }
 
-const appConfig = applyAppConfig();
-applyLinkingMocks(appScheme(appConfig));
+applyAppConfig();
 applySymbolsMock();
 
 // expo-modules-core ships TypeScript source only (main: src/index.ts) — Node can
@@ -45,4 +43,12 @@ applySymbolsMock();
 // sync requires from the registry — the same boundary jest-expo mocks.
 vi.mock('expo-modules-core', async () => {
   return await vi.importActual('expo-modules-core');
+});
+
+// Metro fills React Native's asset registry at bundle time; under a test runner
+// it stays empty, so every metadata lookup by module id fails (see
+// modules/assets-registry).
+vi.mock('@react-native/assets-registry/registry', async () => {
+  const { assetsRegistryMock } = await import('./modules/assets-registry');
+  return assetsRegistryMock();
 });

@@ -380,10 +380,10 @@ jest.mock('some-analytics-sdk', () => {
 ```ts
 import { extendPresetMock } from 'vitest-expo/helpers';
 
-extendPresetMock('expo-constants', { installationId: 'test-installation' });
+extendPresetMock('react-native-reanimated', { interpolateColor: () => 'transparent' });
 ```
 
-**3. `mockNativeModule`** — for a single native module below the JavaScript layer, when the JavaScript wrapper should stay real:
+**3. `mockNativeModule`** — for a single native module below the JavaScript layer, when the JavaScript wrapper should stay real. This is the hatch for Expo SDK packages: they run their own code over a mocked native boundary, so replacing the module below them keeps their real behavior:
 
 ```ts
 import { mockNativeModule } from 'vitest-native/helpers';

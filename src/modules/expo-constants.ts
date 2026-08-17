@@ -1,5 +1,3 @@
-import { extendPresetMock } from './registry';
-
 export interface AppConfig {
   name?: string;
   slug?: string;
@@ -8,12 +6,18 @@ export interface AppConfig {
 }
 
 /**
- * Injects the project's real app config (app.json `expo` key, forwarded by the
- * plugin via VITEST_EXPO_APP_CONFIG) into the expo-constants mock.
+ * Publishes the project's real app config (app.json / app.config.js, forwarded
+ * by the plugin via VITEST_EXPO_APP_CONFIG) on the mocked `ExponentConstants`
+ * native module — the same property the platform fills on device.
  *
- * This intentionally exceeds jest-expo: there `Constants.expoConfig` stays
- * empty in tests, which is why `expo-linking`'s createURL/parse throw without
- * hand-written mocks.
+ * expo-constants' own JavaScript derives everything from there
+ * (`Constants.manifest`, `.expoConfig`, `.expoGoConfig`, `.easConfig`), and
+ * packages reading the manifest — expo-linking's scheme resolution above all —
+ * work without a hand-written module mock. Injecting data one layer below the
+ * package is what keeps the package's real behavior intact.
+ *
+ * This intentionally exceeds Jest's Expo preset, where the manifest stays
+ * empty and `Linking.createURL()` therefore throws.
  */
 export function applyAppConfig(): AppConfig | null {
   const raw = process.env.VITEST_EXPO_APP_CONFIG;
@@ -26,16 +30,14 @@ export function applyAppConfig(): AppConfig | null {
     return null;
   }
 
-  const scheme = appScheme(config);
-  extendPresetMock('expo-constants', {
-    expoConfig: config,
-    linkingUri: scheme ? `${scheme}://` : '',
-    // The preset default is 'storeClient' (= Expo Go), which makes packages
-    // apply Expo Go restrictions — expo-notifications even throws on Android.
-    // Tests model a real (dev/standalone) build.
-    executionEnvironment: 'bare',
-    appOwnership: null,
-  });
+  const constants = (globalThis as any).expo?.modules?.ExponentConstants;
+  if (constants) {
+    constants.manifest = config;
+    // Supplied by the platform on a device, and read by expo-linking when the
+    // app has no custom scheme.
+    const scheme = appScheme(config);
+    constants.linkingUri = scheme ? `${scheme}://` : '';
+  }
   return config;
 }
 
