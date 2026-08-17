@@ -43,6 +43,11 @@ jobs:
         run: npm run test:vitest:android --workspace app
       - name: Conformance — jest-expo reference
         run: npm run test:jest --workspace app
+      # Token-based publish. Once the package exists on npm, configure a
+      # trusted publisher for this repository and workflow in the package
+      # settings on npmjs.com: npm then authenticates over OIDC, provenance is
+      # generated automatically, and the NPM_TOKEN secret and the env block
+      # below can be deleted.
       - name: Publish
         run: npm publish --provenance --access public --workspaces=false
         env:
