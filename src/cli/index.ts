@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { init } from './init';
 import { migrate } from './migrate';
 import { color } from './ui';
 
@@ -8,11 +9,13 @@ const USAGE = `
 ${color.bold('vitest-expo')} — test Expo apps with Vitest
 
 Usage
-  npx vitest-expo migrate [options]
+  npx vitest-expo init [options]       set Vitest up in an Expo app
+  npx vitest-expo migrate [options]    carry an existing jest-expo setup over
 
-Analyzes a jest-expo project, writes a vitest.config.ts derived from the Jest
-config, points the test script at Vitest, and reports what needs a hand.
-Existing files are never overwritten unless asked for.
+init writes a vitest.config.mts, adds the test script and prints the install
+line. migrate derives all of that from the project's Jest config and reports
+the patterns that need a hand. Existing files are never overwritten unless
+asked for.
 
 Options
   --force        overwrite an existing vitest.config.ts
@@ -106,6 +109,10 @@ function main(): number {
   if (!args.command) {
     console.log(USAGE);
     return 1;
+  }
+
+  if (args.command === 'init') {
+    return init({ root: args.cwd, force: args.force, dryRun: args.dryRun });
   }
 
   if (args.command !== 'migrate') {

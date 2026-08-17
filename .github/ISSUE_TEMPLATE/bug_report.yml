@@ -1,0 +1,51 @@
+name: Bug report
+description: Something behaves differently than it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        jest-expo is the reference this package is verified against, so the
+        most useful thing you can tell us is whether the same test behaves
+        differently there.
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: What you expected, what you got, and the error output if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: |
+        A minimal test file plus your `vitest.config`, or a link to a repository.
+        Issues without a reproduction usually cannot be acted on.
+      render: tsx
+    validations:
+      required: true
+  - type: dropdown
+    id: under-jest
+    attributes:
+      label: Does the same test pass under jest-expo?
+      options:
+        - 'Yes — it passes under jest-expo and fails here'
+        - 'No — it fails under jest-expo too'
+        - 'Not applicable (new project, no Jest setup)'
+        - 'Have not checked'
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `npx vitest-expo --version`, plus Expo SDK, React Native, Vitest and Node.
+      placeholder: 'vitest-expo 57.0.0 · expo 57.0.13 · react-native 0.86.2 · vitest 4.1.10 · node 22'
+    validations:
+      required: true
+  - type: input
+    id: package-manager
+    attributes:
+      label: Package manager and install layout
+      placeholder: 'npm 10 / pnpm 9 (node-linker=hoisted) / yarn 4 (nodeLinker: node-modules) / bun'

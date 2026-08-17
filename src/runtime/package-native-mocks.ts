@@ -16,6 +16,7 @@
  */
 import { createRequire } from 'node:module';
 import { vi } from 'vitest';
+import { debug } from './debug';
 
 type NativeMock = Record<string, unknown>;
 
@@ -80,7 +81,8 @@ export function packageNativeMock(moduleName: string): NativeMock | null {
       const required = withJestGlobal(mockPath, () => createRequire(mockPath)(mockPath));
       const moduleExports = (required?.default && required.__esModule ? required : required) as NativeMock;
       result = materialize(moduleExports);
-    } catch {
+    } catch (error) {
+      debug('package-mock', `ignored ${moduleName} mock at ${mockPath}`, error);
       result = null;
     }
   }

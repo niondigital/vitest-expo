@@ -6,9 +6,28 @@ on:
   pull_request:
 
 jobs:
-  test:
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Unit tests
+        run: npm test
+      - name: Vendored specs match the installed jest-expo
+        run: npm run check-spec-drift
+
+  conformance:
+    name: Conformance (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node: [20, 22]
     steps:
@@ -35,7 +54,46 @@ jobs:
       - name: Conformance — jest-expo/web reference
         run: npm run test:jest:web --workspace app
 
+  windows:
+    name: Conformance (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Conformance — Vitest (iOS)
+        run: npm run test:vitest --workspace app
+      - name: Conformance — jest-expo reference
+        run: npm run test:jest --workspace app
+
+  package-managers:
+    name: Install layout (${{ matrix.manager }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        manager: [pnpm, yarn]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable corepack
+        run: corepack enable
+      - name: Build and pack vitest-expo
+        run: |
+          npm ci
+          npm run build
+          npm pack --workspaces=false --pack-destination /tmp
+      - name: Install the tarball into a scratch Expo app and run one suite
+        run: node scripts/verify-install-layout.mjs "${{ matrix.manager }}" /tmp
+
   pack:
+    name: Publishable artifact
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

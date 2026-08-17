@@ -58,17 +58,33 @@ export function checkDependencies(root: string): DependencyReport {
     }
   }
 
-  // react-test-renderer is RNTL's renderer and is version-locked to React.
+  // The renderer is a peer of @testing-library/react-native, and which package
+  // that is depends on its major: 14 moved to the standalone `test-renderer`,
+  // 13 and earlier use `react-test-renderer` locked to the React version.
+  // npm installs peers automatically, so a wrong entry only surfaces on yarn
+  // or a strict pnpm layout — worth getting right here.
   const reactVersion = installedVersion(require, 'react') ?? declared.react;
-  const rendererVersion = installedVersion(require, 'react-test-renderer');
-  if (!rendererVersion && !('react-test-renderer' in declared)) {
-    missing.push(reactVersion ? `react-test-renderer@${reactVersion}` : 'react-test-renderer');
+  const rntlVersion =
+    installedVersion(require, '@testing-library/react-native') ??
+    declared['@testing-library/react-native'];
+  const rntlMajor = Number(major(rntlVersion ?? ''));
+
+  if (Number.isFinite(rntlMajor) && rntlMajor >= 14) {
+    const version = installedVersion(require, 'test-renderer') ?? declared['test-renderer'];
+    if (version) present.push('test-renderer');
+    else missing.push('test-renderer@^1');
   } else {
-    present.push('react-test-renderer');
-    if (reactVersion && rendererVersion && major(reactVersion) !== major(rendererVersion)) {
-      notes.push(
-        `react-test-renderer ${rendererVersion} does not match react ${reactVersion} — install react-test-renderer@${reactVersion}`
-      );
+    const rendererVersion =
+      installedVersion(require, 'react-test-renderer') ?? declared['react-test-renderer'];
+    if (!rendererVersion) {
+      missing.push(reactVersion ? `react-test-renderer@${reactVersion}` : 'react-test-renderer');
+    } else {
+      present.push('react-test-renderer');
+      if (reactVersion && major(reactVersion) !== major(rendererVersion)) {
+        notes.push(
+          `react-test-renderer ${rendererVersion} does not match react ${reactVersion} — install react-test-renderer@${reactVersion}`
+        );
+      }
     }
   }
 

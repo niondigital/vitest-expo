@@ -9,6 +9,7 @@ import {
 } from 'vitest-native/jest-compat';
 import { transformWithEsbuild, type Plugin } from 'vite';
 import { syntaxCompatPlugin } from './syntax-compat';
+import { debug } from './runtime/debug';
 
 type ReactNativeOptions = NonNullable<Parameters<typeof reactNative>[0]>;
 
@@ -91,6 +92,7 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     name: 'vitest-expo',
     config(userConfig) {
       const root = userConfig.root ?? process.cwd();
+      warnOnSdkMismatch(root);
 
       // Setup ordering: engine setups (vitest-native's, then ours) must run
       // BEFORE the project's own setup files — real-world setup files import
@@ -249,6 +251,7 @@ function webPlugins(jestCompat: boolean): Plugin[] {
     name: 'vitest-expo:web',
     config(userConfig) {
       const root = userConfig.root ?? process.cwd();
+      warnOnSdkMismatch(root);
       const existing = normalizeSetupFiles((userConfig as any).test?.setupFiles);
       (userConfig as any).test = {
         ...(userConfig as any).test,
@@ -399,6 +402,31 @@ function findPackageNativeMocks(root: string): Record<string, string> {
  * name, explicitly requested, or declaring react-native / expo-modules-core
  * as a (peer) dependency.
  */
+/**
+ * The package major tracks the Expo SDK it is verified against (57.x is for
+ * SDK 57), so a mismatch is worth one line at config time. Not expressed as a
+ * peer dependency on expo: that would make the engine classify vitest-expo
+ * itself as a React Native package and load it through the Node-side pipeline.
+ */
+let sdkChecked = false;
+function warnOnSdkMismatch(root: string): void {
+  if (sdkChecked) return;
+  sdkChecked = true;
+  try {
+    const own = createRequire(import.meta.url)('../package.json').version as string;
+    const expo = createRequire(path.join(root, 'package.json'))('expo/package.json').version as string;
+    const major = (version: string) => /^(\d+)\./.exec(version)?.[1];
+    if (major(own) && major(expo) && major(own) !== major(expo)) {
+      console.warn(
+        `[vitest-expo] this is vitest-expo ${own} (Expo SDK ${major(own)}), but the project runs Expo ${expo} — ` +
+          `install vitest-expo@${major(expo)} for a matching module surface.`
+      );
+    }
+  } catch (error) {
+    debug('sdk-check', 'could not compare the Expo SDK version', error);
+  }
+}
+
 function isReactNativeTerritory(pkg: string, root: string, requested: string[]): boolean {
   if (requested.includes(pkg)) return true;
   if (pkg === 'react-native' || pkg.startsWith('react-native-')) return true;
@@ -450,7 +478,8 @@ function readViaExpoConfig(root: string): Record<string, unknown> | null {
     const { getConfig } = require('@expo/config');
     const { exp } = getConfig(root, { skipSDKVersionRequirement: true });
     return exp ?? null;
-  } catch {
+  } catch (error) {
+    debug('app-config', 'could not read the app config via @expo/config, falling back to app.json', error);
     return null;
   }
 }

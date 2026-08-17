@@ -1,11 +1,22 @@
 # vitest-expo
 
+[![CI](https://github.com/swey/vitest-expo/actions/workflows/ci.yml/badge.svg)](https://github.com/swey/vitest-expo/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/vitest-expo)](https://www.npmjs.com/package/vitest-expo)
+[![Expo SDK 57](https://img.shields.io/badge/Expo%20SDK-57-000)](https://docs.expo.dev/)
+[![license MIT](https://img.shields.io/npm/l/vitest-expo)](./LICENSE)
+
 **Test your Expo app with Vitest** — iOS, Android and Web. Real React Native, the testing-library API you know, no test-config maintenance.
 
 ## Quick start
 
 ```bash
-npm install -D vitest-expo vitest vitest-native @testing-library/react-native react-test-renderer
+npx vitest-expo init
+```
+
+That writes the config, adds the test script and prints the install line for your project. By hand it is:
+
+```bash
+npm install -D vitest-expo vitest vitest-native @testing-library/react-native test-renderer
 ```
 
 ```ts
@@ -141,9 +152,24 @@ Platform extensions (`.ios.tsx` / `.android.tsx` / `.native.tsx` / `.web.tsx`) r
 
 One entry covers the Vitest globals and the RNTL matchers (`toBeOnTheScreen`, …).
 
-## Status
+## Compatibility
 
-Beta. Validated against Expo SDK 57 / RN 0.86 / RNTL 13–14 / Vitest 4 — via a conformance suite that runs identically under jest-expo and vitest-expo on iOS, Android and Web ([`examples/app`](./examples/app)), and against a production Expo app (54 suites, ~500 tests). Built on [vitest-native](https://github.com/danfry1/vitest-native), which carries the React Native core.
+The major version tracks the Expo SDK it is verified against, the way jest-expo does it — `vitest-expo@57` is for SDK 57.
+
+| vitest-expo | Expo SDK | React Native | Vitest | RNTL |
+|---|---|---|---|---|
+| 57.x | 57 | 0.86 | 4 | 13 · 14 |
+
+Node 20 or newer. npm, pnpm, yarn (`nodeLinker: node-modules`) and bun layouts are covered by CI; Yarn Plug'n'Play is not supported.
+
+## Why trust it
+
+- **Every release is checked against jest-expo itself.** [`examples/app`](./examples/app) is one Expo app whose suite runs under *both* runners on iOS, Android and Web — any divergence fails CI, on Node 20 and 22, Linux and Windows.
+- **It carries a production app.** A real Expo codebase runs its full suite — 54 files, ~500 tests — with jest-expo removed entirely.
+- **Field-tested on other people's code.** Seven public and private Expo projects migrated with `npx vitest-expo migrate`; most needed no manual change at all.
+- **Faster where it counts.** Across those seven suites, cold runs were faster everywhere at less than half the CPU, and warm runs faster in six of seven.
+
+Built on [vitest-native](https://github.com/danfry1/vitest-native), which carries the React Native core.
 
 <details>
 <summary><strong>How it works</strong></summary>
@@ -155,16 +181,16 @@ vitest-expo layers the Expo pieces on top of vitest-native (real React Native un
 - **Node-side resolution hardening** for TS-source Expo packages: extensionless relative imports resolve Metro-style, `.ts` under node_modules transpiles on demand, type-only imports that survived compilation resolve to an empty module
 - the **Expo native-module layer** is driven by data specs, not hand-written rules: a reviewed overlay → module specs vendored from jest-expo (72 modules, materialized as vi.fn mocks with jest-expo's exact semantics) → generic Expo conventions (`*Async` methods resolve, PascalCase properties are native classes). Absence is modeled too: probes like `isRunningInExpoGo()` read false — tests behave like a dev build
 - real app config is injected into `Constants.expoConfig` (from app.json / app.config.ts), and the runtime setup ships a curated snapshot serializer and an `ErrorUtils` stub
-- performance across seven measured real-world suites: cold starts faster everywhere (up to a third, at less than half the CPU), warm full runs faster on six of seven (up to 4x) -- only a very wide suite on a many-core machine ran its warm full pass faster under jest-expo
+- performance across seven measured real-world suites: cold starts faster everywhere (up to a third, at less than half the CPU), warm full runs faster on six of seven (up to 4x) — only a very wide suite on a many-core machine ran its warm full pass faster under jest-expo
 
-Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vitest-expo/helpers` · `vitest-expo/snapshot-serializer` · `vitest-expo/types` · the `vitest-expo` CLI (`migrate`).
+Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vitest-expo/helpers` · `vitest-expo/snapshot-serializer` · `vitest-expo/types` · the `vitest-expo` CLI (`init`, `migrate`).
 
 </details>
 
 <details>
 <summary><strong>Known limitations</strong></summary>
 
-- On web, `@testing-library/react-native` is not usable — its text-in-`<Text>` invariant fires on DOM hosts. That is runner-independent (`jest-expo/web` fails identically); render web tests via `react-test-renderer` or React Testing Library
+- On web, `@testing-library/react-native` is not usable — its text-in-`<Text>` invariant fires on DOM hosts. That is runner-independent (`jest-expo/web` fails identically); render web tests via the standalone renderer (`test-renderer`) or React Testing Library
 - `vitest-expo/router` uses deep imports into `expo-router/build/*` (no `exports` field there); verified per Expo SDK — currently SDK 57
 - Jest auto-applies root `__mocks__` for node_modules packages without a call; Vitest needs the explicit `jest.mock('pkg')`
 - Class mocks constructed with `new` need a `function` implementation — arrow implementations are not constructable

@@ -1,11 +1,19 @@
 # vitest-expo
 
-## Unreleased
+## 57.0.0
 
+The version now tracks the Expo SDK it is verified against, the way jest-expo does it: `vitest-expo@57` is for SDK 57. Nothing about the API changed with the renumbering.
+
+- Expo SDK view components (`requireNativeViewManager`) render as host components: BlurView, LinearGradient, CameraView and expo-image are covered by the conformance suite, and shared objects carry the `release()` the native lifecycle provides — which also makes expo-video usable.
 - Expo packages that sit directly on the native boundary — expo-font, expo-asset, expo-splash-screen, expo-status-bar, expo-constants, expo-linking — run their own JavaScript instead of a stand-in module: font loading states, asset metadata, splash-screen semantics and the complete export surface behave as documented.
 - Native modules are described by more of the vendored data (per-module constants and method lists) and by the mocks Expo packages ship themselves (`<package>/mocks/<NativeModule>`), so a module's mocked surface tracks the installed package version.
 - Native modules enumerate their properties, so package code that copies a module (`const { name, ...rest } = Module`) sees the same shape as on a device, and properties the data does not describe read as absent instead of as a callable.
 - The app config reaches `Constants` through the native manifest, which is also what `Linking.createURL()` resolves the scheme from.
+- Babel-only syntax in app code is accepted: `export default from` re-exports, Flow-annotated `.js` files carrying an `@flow` pragma, and legacy decorators (with `experimentalDecorators` in tsconfig).
+- `npx vitest-expo init` sets Vitest up in a project that has no test runner yet — the counterpart of `migrate`.
+- `migrate` asks for the renderer package the installed React Native Testing Library actually needs (`test-renderer` on RNTL 14, `react-test-renderer` on 13), pins `@babel/core` to 7, flags `render()` results used without `await`, and points out `babel-plugin-module-resolver` aliases that belong in `resolve.alias`.
+- The plugin warns when the project's Expo SDK major differs from the package major.
+- `DEBUG=vitest-expo` reports what the optional fallbacks skipped and why.
 
 ## 0.1.0
 

@@ -1,7 +1,7 @@
 {
   "name": "vitest-expo",
-  "version": "0.1.0",
-  "description": "Test Expo apps with Vitest — jest-expo parity on top of vitest-native.",
+  "version": "57.0.0",
+  "description": "Test Expo apps with Vitest \u2014 a drop-in replacement for jest-expo, built on vitest-native.",
   "license": "MIT",
   "author": "Sebastian Weyrauch <sw@nion-digital.com>",
   "bugs": "https://github.com/swey/vitest-expo/issues",
@@ -57,13 +57,16 @@
   ],
   "sideEffects": [
     "./dist/setup.js",
+    "./dist/setup-web.js",
     "./dist/router/index.js"
   ],
   "scripts": {
     "build": "tsup",
     "import-jest-expo-mocks": "node scripts/import-jest-expo-mocks.mjs",
     "prepublishOnly": "npm run build",
-    "test": "npm run build && npm run test --workspace app"
+    "test": "vitest run",
+    "test:conformance": "npm run build && npm run test --workspace app",
+    "check-spec-drift": "node scripts/check-spec-drift.mjs"
   },
   "dependencies": {
     "@oxc-project/runtime": "^0.144.0",
@@ -75,7 +78,7 @@
     "react": ">=18",
     "vite": ">=6 <9",
     "vitest": ">=4 <6",
-    "vitest-native": ">=0.11.0"
+    "vitest-native": ">=0.11 <0.12"
   },
   "peerDependenciesMeta": {
     "expo-router": {
@@ -84,7 +87,8 @@
   },
   "devDependencies": {
     "tsup": "^8.5.1",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.10"
   },
   "workspaces": [
     "examples/app"

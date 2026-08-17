@@ -1,0 +1,21 @@
+name: Expo SDK support
+description: Track support for a new Expo SDK
+labels: [sdk]
+title: 'Support Expo SDK '
+body:
+  - type: input
+    id: sdk
+    attributes:
+      label: SDK version
+      placeholder: '58 (beta)'
+    validations:
+      required: true
+  - type: textarea
+    id: findings
+    attributes:
+      label: What breaks
+      description: |
+        Run the conformance suite against the new SDK and paste what fails.
+        Useful detail: does jest-expo of the same SDK pass the same test?
+    validations:
+      required: false

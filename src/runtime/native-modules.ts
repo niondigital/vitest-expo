@@ -130,6 +130,14 @@ export function hardenExpoNativeModuleRegistry(): void {
   if (!original || g.__vitest_expo_registry_hardened) return;
   g.__vitest_expo_registry_hardened = true;
 
+  // The engine's SharedObject stub carries the EventEmitter surface but not
+  // the native lifecycle: `release()` exists on every real shared object, and
+  // hooks like expo-video's useReleasingSharedObject call it in cleanup.
+  const sharedObjectProto = g.expo?.SharedObject?.prototype;
+  if (sharedObjectProto && typeof sharedObjectProto.release !== 'function') {
+    sharedObjectProto.release = function release() {};
+  }
+
   const wrapperCache = new Map<PropertyKey, unknown>();
   const classCache = new Map<string, unknown>();
   const specMockCache = new Map<string, unknown>();

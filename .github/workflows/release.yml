@@ -1,0 +1,49 @@
+# Publishes a tagged version to npm with provenance, after the same gates CI
+# runs. Trigger: push a tag (v57.0.1) or run the workflow manually.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for npm provenance ("Built and signed on GitHub Actions").
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: Tag matches the package version
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$version" != "$tag" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package version $version"
+            exit 1
+          fi
+      - name: Unit tests
+        run: npm test
+      - name: Vendored specs match the installed jest-expo
+        run: npm run check-spec-drift
+      - name: Build
+        run: npm run build
+      - name: Conformance — Vitest (iOS)
+        run: npm run test:vitest --workspace app
+      - name: Conformance — Vitest (Android)
+        run: npm run test:vitest:android --workspace app
+      - name: Conformance — jest-expo reference
+        run: npm run test:jest --workspace app
+      - name: Publish
+        run: npm publish --provenance --access public --workspaces=false
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

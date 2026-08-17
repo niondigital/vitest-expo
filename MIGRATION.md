@@ -15,11 +15,11 @@ npx vitest-expo migrate
 Run this in the project root, next to `package.json`. It reads the Jest config, writes `vitest.config.ts`, points the `test` script at Vitest while keeping the Jest run as `test:jest`, and prints a report of everything it could not translate.
 
 ```bash
-npm install -D vitest-expo vitest vitest-native @testing-library/react-native react-test-renderer
+npm install -D vitest-expo vitest vitest-native @testing-library/react-native test-renderer
 npm test
 ```
 
-`react-test-renderer` has to match the installed React version. The migrate command prints the exact install line for the project, including `@react-native/babel-preset` and `@babel/core` when they are missing — the native engine runs the React Native Babel pipeline in Node and needs both resolvable.
+The renderer package depends on the React Native Testing Library major: 14 uses the standalone `test-renderer`, 13 uses `react-test-renderer` at the project's React version. The migrate command prints the exact install line for the project, including `@react-native/babel-preset` and `@babel/core` when they are missing — the native engine runs the React Native Babel pipeline in Node and needs both resolvable.
 
 Add the types once, so `describe`/`it`/`expect` and the React Native Testing Library matchers resolve:
 
@@ -281,7 +281,7 @@ await render(<Greeting />);
 expect(screen.getByText('Hello')).toBeOnTheScreen();
 ```
 
-Suites staying on RNTL 13 are unaffected — both majors are supported.
+Suites staying on RNTL 13 are unaffected — both majors are supported. Note the renderer package differs between them: RNTL 14 peers on the standalone `test-renderer`, RNTL 13 on `react-test-renderer` at the project's React version. npm installs that peer on its own; yarn and strict pnpm layouts need it declared.
 
 ### Path aliases in babel.config.js
 
@@ -362,7 +362,7 @@ export default defineConfig({
 
 Two things to plan for on web:
 
-- **React Native Testing Library is not usable there.** Its text-in-`<Text>` invariant fires against DOM host elements. This is a property of the library, not of the runner — `jest-expo/web` fails the same way. Render web tests with `react-test-renderer`, or use React Testing Library against the DOM.
+- **React Native Testing Library is not usable there.** Its text-in-`<Text>` invariant fires against DOM host elements. This is a property of the library, not of the runner — `jest-expo/web` fails the same way. Render web tests with the standalone renderer, or use React Testing Library against the DOM.
 - **Snapshots differ from the native ones**, because the host elements are DOM elements. Give the web run its own snapshot directory via `resolveSnapshotPath`.
 
 `jsdom` and `react-native-web` have to be installed for the web platform.

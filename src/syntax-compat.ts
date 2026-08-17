@@ -2,6 +2,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import * as vite from 'vite';
 import { type Plugin } from 'vite';
+import { debug } from './runtime/debug';
 
 /**
  * Babel-only syntax that babel-preset-expo accepts in app code but esbuild
@@ -91,7 +92,9 @@ interface BabelLike {
   ): { code?: string | null; map?: unknown } | null;
 }
 
-let flowToolchain: { babel: BabelLike; plugins: unknown[] } | null | undefined;
+let flowToolchain: { babel: BabelLike; plugins: unknown[] } | null = null;
+/** Directories whose probe already failed — never paid twice. */
+const flowProbeFailed = new Set<string>();
 
 /**
  * Flow strip via the project's own Babel — the same packages the engine's
@@ -100,8 +103,19 @@ let flowToolchain: { babel: BabelLike; plugins: unknown[] } | null | undefined;
  * install-time footprint. Loaded lazily: most projects never hit a Flow file.
  */
 function stripFlow(code: string, file: string): { code: string; map: any } | null {
-  if (flowToolchain === undefined) flowToolchain = loadFlowToolchain(path.dirname(file));
-  if (!flowToolchain) return null;
+  if (!flowToolchain) {
+    // Probe from the file's own directory first (a package in a monorepo may
+    // carry its own install), then from the working directory. A failure is
+    // remembered per directory, not globally: a later file elsewhere in the
+    // repo can still bring the toolchain into reach.
+    const from = path.dirname(file);
+    if (flowProbeFailed.has(from)) return null;
+    flowToolchain = loadFlowToolchain(from) ?? loadFlowToolchain(process.cwd());
+    if (!flowToolchain) {
+      flowProbeFailed.add(from);
+      return null;
+    }
+  }
 
   const output = flowToolchain.babel.transformSync(code, {
     filename: file,
@@ -129,7 +143,8 @@ function loadFlowToolchain(from: string): { babel: BabelLike; plugins: unknown[]
       babel: projectRequire('@babel/core') as BabelLike,
       plugins: [plugin('babel-plugin-transform-flow-enums'), plugin('@babel/plugin-transform-flow-strip-types')],
     };
-  } catch {
+  } catch (error) {
+    debug('flow', `no Flow toolchain reachable from ${from} — .js files with an @flow pragma stay untransformed`, error);
     return null;
   }
 }
