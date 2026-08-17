@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [vitestExpo()],
   resolve: {
     alias: {
-      '@/assets': path.resolve(__dirname, 'assets'),
-      '@': path.resolve(__dirname, 'src'),
+      '@/assets': path.resolve(import.meta.dirname, 'assets'),
+      '@': path.resolve(import.meta.dirname, 'src'),
     },
   },
   test: {

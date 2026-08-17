@@ -417,6 +417,16 @@ plugins: [vitestExpo({ transformPackages: ['react-native-some-library'] })],
 
 Reach for the narrowest one that works: a preset extension survives a library upgrade better than a hand-written module mock, and a native-module mock keeps the library's own JavaScript under test.
 
+### Warnings that look like failures
+
+Two lines in the output are diagnostics, not errors — but they make a green run look broken.
+
+**`Your Vite config uses features that are unsupported by configLoader: 'native'`** — an Expo app's `package.json` has no `"type": "module"`, so Node reads `vitest.config.ts` as CommonJS while the file uses `import`/`export default`. Name the config `vitest.config.mts` and it is unambiguous. Two consequences: use `import.meta.dirname` instead of `__dirname`, and add `"**/*.mts"` to the `include` list in `tsconfig.json` if the config should be type-checked. `vitest-expo init` and `migrate` write `.mts` for this reason.
+
+**`'<package>' resolves to two different files`** — Node's `require` and Vite picked different entry files for the same package (typically `lib/index.js` against `es/index.js` in a package without an `exports` field). Nothing fails yet, but if both module systems load it, module-level state exists twice: a store written through one copy reads back unset through the other. The line appears only for packages that are actually loaded on the Node side. Make both resolvers agree with `resolve.mainFields`, or keep the package on one side by importing it from your app code only.
+
+**React Native deprecation notices** (`SafeAreaView has been deprecated`, `Clipboard has been extracted`, …) come from React Native itself: its entry module exposes those names as getters that warn when touched, and building the module namespace touches every one of them. They say nothing about your test.
+
 ## When something fails only under Vitest
 
 A short checklist before digging deeper:

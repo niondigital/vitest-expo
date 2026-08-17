@@ -20,7 +20,7 @@ npm install -D vitest-expo vitest vitest-native @testing-library/react-native te
 ```
 
 ```ts
-// vitest.config.ts
+// vitest.config.mts — .mts because an Expo app's package.json is not "type": "module"
 import { defineConfig } from 'vitest/config';
 import { vitestExpo } from 'vitest-expo';
 
@@ -125,10 +125,10 @@ Layouts, route groups, dynamic routes with `useLocalSearchParams` and the impera
 iOS is the default. Android and Web are one config each:
 
 ```ts
-// vitest.config.android.ts
+// vitest.config.android.mts
 export default defineConfig({ plugins: [vitestExpo({ platform: 'android' })] });
 
-// vitest.config.web.ts — react-native-web in jsdom
+// vitest.config.web.mts — react-native-web in jsdom
 export default defineConfig({ plugins: [vitestExpo({ platform: 'web' })] });
 ```
 

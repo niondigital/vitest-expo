@@ -8,8 +8,8 @@ import { vitestExpoProjects } from 'vitest-expo';
  * per-platform runs live in the dedicated configs.
  */
 const alias = [
-	{ find: /^@\/assets\//, replacement: `${path.resolve(__dirname, 'assets')}/` },
-	{ find: /^@\//, replacement: `${path.resolve(__dirname, 'src')}/` }
+	{ find: /^@\/assets\//, replacement: `${path.resolve(import.meta.dirname, 'assets')}/` },
+	{ find: /^@\//, replacement: `${path.resolve(import.meta.dirname, 'src')}/` }
 ];
 
 export default defineConfig({

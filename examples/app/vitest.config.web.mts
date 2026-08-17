@@ -11,8 +11,8 @@ export default defineConfig({
 	plugins: [vitestExpo({ platform: 'web' })],
 	resolve: {
 		alias: [
-			{ find: /^@\/assets\//, replacement: `${path.resolve(__dirname, 'assets')}/` },
-			{ find: /^@\//, replacement: `${path.resolve(__dirname, 'src')}/` }
+			{ find: /^@\/assets\//, replacement: `${path.resolve(import.meta.dirname, 'assets')}/` },
+			{ find: /^@\//, replacement: `${path.resolve(import.meta.dirname, 'src')}/` }
 		]
 	},
 	test: {

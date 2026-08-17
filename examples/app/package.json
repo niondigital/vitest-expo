@@ -67,12 +67,12 @@
     "lint": "expo lint",
     "test": "npm run test:vitest && npm run test:vitest:android && npm run test:vitest:web && npm run test:jest && npm run test:jest:web",
     "test:vitest": "vitest run",
-    "test:vitest:android": "vitest run --config vitest.config.android.ts",
+    "test:vitest:android": "vitest run --config vitest.config.android.mts",
     "test:jest": "jest --ci",
     "typecheck": "tsc --noEmit",
-    "test:vitest:web": "vitest run --config vitest.config.web.ts",
+    "test:vitest:web": "vitest run --config vitest.config.web.mts",
     "test:jest:web": "jest --config jest.config.web.js --ci",
-    "test:vitest:universal": "vitest run --config vitest.config.universal.ts"
+    "test:vitest:universal": "vitest run --config vitest.config.universal.mts"
   },
   "private": true
 }
