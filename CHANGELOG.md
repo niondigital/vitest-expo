@@ -1,11 +1,18 @@
 # vitest-expo
 
-## Unreleased
+## 57.1.0
 
-- `extendPresetMock` is re-exported from the engine, which ships it since 0.13 — same import path for consumers, one implementation less here.
-- Requires vitest-native 0.13: three fixes this package carried downstream now live upstream (the expo-linking preset surface, the `*Async`/PascalCase stub conventions, `extendPresetMock`), and the engine's `transform` option accepts an `{ include, exclude }` pair, which the plugin now merges into instead of spreading.
+Quieter output, two options to keep it that way, and the engine's own fixes taken over.
+
+- A green run reads like one. React Native's five moved/deprecated notices are gone — its entry exposes them as getters that warn when read, and building a module namespace reads every export, so they fired once per test file while saying nothing about the app. jest-expo never shows them either. The engine's duplicate-resolution report is kept for the first file that hits a package and dropped afterwards, instead of repeating per file. On a 54-file suite that is 5542 lines of output down to 502.
+- `acknowledgedDuplicates` lists packages whose duplicate resolution you have reviewed. They stay quiet, while any *other* package that starts resolving twice is still reported — a baseline, not a mute switch.
+- `silenceWarnings` drops project-specific noise by prefix or pattern, for library warnings that carry no signal in a test run. Both filter through Vitest's `onConsoleLog`; a handler of your own keeps working and runs first.
+- `extendPresetMock` is re-exported from the engine, which ships it since 0.13 — same import path, one implementation less here.
+- Requires vitest-native 0.13. Three fixes this package carried downstream now live upstream (the expo-linking preset surface, the `*Async`/PascalCase stub conventions, `extendPresetMock`), and the engine's `transform` option accepts an `{ include, exclude }` pair, which the plugin merges into instead of spreading.
+- The migrate command flags an `async` callback handed to `forEach` or `map`: the promise is dropped, so an awaited render and the assertions after it run once the test has already ended — a test that passes without asserting anything.
 - Expo 57.0.14, expo-router 57.0.14, Vitest 4.1.11.
-- Documented that jsdom 30 requires Node 22 or newer, which matters for web tests on Node 20.
+- Configs are named `.mts` throughout, which is what the CLI writes: an Expo app is not `"type": "module"`, so Node reads a `.ts` config as CommonJS while it is written as ESM.
+- Documentation: an option reference with an example per option (`OPTIONS.md`, shipped with the package), and a migration-guide section for output that makes a green run look broken. jsdom 30 requires Node 22 or newer, which matters for web tests on Node 20.
 
 ## 57.0.0
 

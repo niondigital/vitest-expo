@@ -1,6 +1,6 @@
 {
   "name": "vitest-expo",
-  "version": "57.0.0",
+  "version": "57.1.0",
   "description": "Test Expo apps with Vitest \u2014 a drop-in replacement for jest-expo, built on vitest-native.",
   "license": "MIT",
   "author": "Sebastian Weyrauch <sw@nion-digital.com>",
