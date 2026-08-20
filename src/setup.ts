@@ -41,14 +41,20 @@ applySymbolsMock();
 // Routing it through the mocker pre-loads it via the async Vite pipeline (where
 // vitest-native's globalThis.expo stub lets the real JS run) and satisfies those
 // sync requires from the registry — the same boundary jest-expo mocks.
-vi.mock('expo-modules-core', async () => {
-  return await vi.importActual('expo-modules-core');
-});
-
 // Metro fills React Native's asset registry at bundle time; under a test runner
-// it stays empty, so every metadata lookup by module id fails (see
-// modules/assets-registry).
+// it stays empty, so every metadata lookup by module id fails.
+//
+// The engine mocks this module too, but mirrors the real one: an empty array, so
+// an id resolves to undefined. jest-expo answers any id with fixed metadata
+// instead, which is what expo-asset and expo-font's loading paths need when a
+// test passes a stand-in module id. Parity with jest-expo wins here, so this
+// mock is registered after the engine's (see modules/assets-registry).
 vi.mock('@react-native/assets-registry/registry', async () => {
   const { assetsRegistryMock } = await import('./modules/assets-registry');
   return assetsRegistryMock();
 });
+
+vi.mock('expo-modules-core', async () => {
+  return await vi.importActual('expo-modules-core');
+});
+

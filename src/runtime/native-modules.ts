@@ -203,6 +203,9 @@ export function hardenExpoNativeModuleRegistry(): void {
           if (shipped && prop in shipped) return shipped[prop];
           const property = specFor(name, prop);
           if (property) return specMock(name, prop, property);
+          // The engine's own stub applies these two conventions as well (since
+          // 0.13, upstreamed from here), but a described module never reaches
+          // it: the `isDescribed` rule below answers first. Keep them.
           if (prop.endsWith('Async')) return () => Promise.resolve(undefined);
           if (/^[A-Z]/.test(prop)) return fabricatedClass(name, prop);
           // A described module has a known surface: everything outside it is a
