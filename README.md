@@ -203,6 +203,7 @@ Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vit
 - Partial mocks of app modules with a deep import graph are best written as `vi.mock(path, async (importOriginal) => …)`
 - Existing jest-expo snapshots need one regeneration (deliberate: the serializer renders the real host tree in a curated format)
 - App code is transformed by Vite, not by `babel-preset-expo`. Babel-only syntax still works — `export default from`, Flow-annotated `.js` (with an `@flow` pragma), legacy decorators (with `experimentalDecorators` in tsconfig) — but plugins from the project's `babel.config.js` do not apply; path aliases belong in `resolve.alias`
+- Web tests run in jsdom, and jsdom 30 requires Node 22 or newer — on Node 20, keep jsdom at 29
 - Yarn Plug'n'Play is not supported — the React Native toolchain resolves through a real `node_modules` tree; use `nodeLinker: node-modules` (npm, pnpm and bun layouts all work)
 - `import.meta` is standard ESM meta under Vite, not Expo's import-meta registry
 - `'use dom'` modules run as ordinary React components; they are not rewritten into WebView proxies

@@ -100,11 +100,10 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     // Metro treats .xml as an asset (Android vector drawables — expo-router
     // ships arrow_right.xml etc.); vitest-native's default list lacks it.
     assetExts: ['.xml', ...(options.reactNative?.assetExts ?? [])],
-    transform: [
-      ...transformPackages,
-      ...UNSHADOWED_EXPO_PACKAGES,
-      ...(options.reactNative?.transform ?? []),
-    ],
+    transform: mergeTransform(
+      [...transformPackages, ...UNSHADOWED_EXPO_PACKAGES],
+      options.reactNative?.transform
+    ),
     presets: withoutExpoPreset(options.reactNative?.presets),
   });
 
@@ -344,6 +343,21 @@ function webPlugins(jestCompat: boolean, noise: ConsoleNoiseOptions): Plugin[] {
   };
 
   return [...(jestCompat ? [jestMockTransform()] : []), syntaxCompatPlugin(), webPlugin];
+}
+
+/**
+ * The engine's transform allowlist takes either a list or an
+ * `{ include, exclude }` pair. Ours are additions to whatever the caller
+ * passed, so the object form keeps its exclude list and gains our entries in
+ * include.
+ */
+function mergeTransform(
+  ours: string[],
+  theirs: ReactNativeOptions['transform']
+): ReactNativeOptions['transform'] {
+  if (!theirs) return ours;
+  if (Array.isArray(theirs)) return [...ours, ...theirs];
+  return { ...theirs, include: [...ours, ...(theirs.include ?? [])] };
 }
 
 /**
