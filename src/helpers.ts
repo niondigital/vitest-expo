@@ -9,4 +9,6 @@
  *     interpolateColor: (v, i, o) => o[0],
  *   });
  */
-export { extendPresetMock } from './modules/registry';
+// The engine ships this since 0.13 (it was our upstream ask); re-exported so
+// consumers keep one import path for the Expo layer's helpers.
+export { extendPresetMock } from 'vitest-native/helpers';
