@@ -1,5 +1,10 @@
 # vitest-expo
 
+## Unreleased
+
+- Requires vitest-native 0.13: three fixes this package carried downstream now live upstream (the expo-linking preset surface, the `*Async`/PascalCase stub conventions, `extendPresetMock`), and the engine's `transform` option accepts an `{ include, exclude }` pair, which the plugin now merges into instead of spreading.
+- Expo 57.0.14, expo-router 57.0.14, Vitest 4.1.11.
+
 ## 57.0.0
 
 The version now tracks the Expo SDK it is verified against, the way jest-expo does it: `vitest-expo@57` is for SDK 57. Nothing about the API changed with the renumbering.

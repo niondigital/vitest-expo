@@ -79,7 +79,7 @@
     "react": ">=18",
     "vite": ">=6 <9",
     "vitest": ">=4 <6",
-    "vitest-native": ">=0.11 <0.12"
+    "vitest-native": ">=0.13 <0.14"
   },
   "peerDependenciesMeta": {
     "expo-router": {
@@ -87,9 +87,10 @@
     }
   },
   "devDependencies": {
+    "react": "19.2.3",
     "tsup": "^8.5.1",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "workspaces": [
     "examples/app"
