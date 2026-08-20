@@ -470,7 +470,7 @@ vitestExpo({
 })
 ```
 
-`silenceWarnings` takes strings (matched from the start of the message) or patterns. Which third-party noise is irrelevant depends on the app, so nothing beyond React Native's own artifacts is silenced by default. A `test.onConsoleLog` of your own keeps working and runs first.
+Both options are described with examples in the [option reference](./OPTIONS.md). `silenceWarnings` takes strings (matched from the start of the message) or patterns. Which third-party noise is irrelevant depends on the app, so nothing beyond React Native's own artifacts is silenced by default. A `test.onConsoleLog` of your own keeps working and runs first.
 
 **`An update to <Component> inside a test was not wrapped in act(...)`** — a `render()` whose result is used without `await`. Since `@testing-library/react-native` 14 the render is async, so the commit lands outside `act`. Watch for render helpers: a helper that does `return render(...)` hands the promise on, and every caller needs the `await` too.
 

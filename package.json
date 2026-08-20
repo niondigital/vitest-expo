@@ -52,6 +52,7 @@
   "files": [
     "dist",
     "types.d.ts",
+    "OPTIONS.md",
     "MIGRATION.md",
     "MIGRATION-AGENTS.md"
   ],

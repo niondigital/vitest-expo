@@ -144,6 +144,12 @@ export default defineConfig({
 
 Platform extensions (`.ios.tsx` / `.android.tsx` / `.native.tsx` / `.web.tsx`) resolve Metro-style everywhere, node_modules included.
 
+## Options
+
+`vitestExpo()` needs none. In practice two get set: `platform` for Android and Web (above), and `jestCompat: false` once a migrated suite no longer needs the Jest layer.
+
+The rest exist for specific situations — an untranspiled package, console output worth silencing, options passed through to the engine underneath. Each with an example in the **[option reference](./OPTIONS.md)**.
+
 ## TypeScript
 
 ```json
