@@ -4,6 +4,7 @@
 
 - Requires vitest-native 0.13: three fixes this package carried downstream now live upstream (the expo-linking preset surface, the `*Async`/PascalCase stub conventions, `extendPresetMock`), and the engine's `transform` option accepts an `{ include, exclude }` pair, which the plugin now merges into instead of spreading.
 - Expo 57.0.14, expo-router 57.0.14, Vitest 4.1.11.
+- Documented that jsdom 30 requires Node 22 or newer, which matters for web tests on Node 20.
 
 ## 57.0.0
 

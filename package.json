@@ -87,6 +87,7 @@
     }
   },
   "devDependencies": {
+    "jsdom": "^29.0.0",
     "react": "19.2.3",
     "tsup": "^8.5.1",
     "typescript": "~6.0.3",
