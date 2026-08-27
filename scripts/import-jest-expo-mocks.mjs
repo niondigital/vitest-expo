@@ -9,12 +9,12 @@
  *
  * Re-run after bumping jest-expo:  node scripts/import-jest-expo-mocks.mjs
  */
-import { createRequire } from 'node:module';
+import { jestExpoRequire } from './resolve-jest-expo.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const require = createRequire(import.meta.url);
+const require = jestExpoRequire();
 
 const jestExpoPkg = require('jest-expo/package.json');
 const publicModules = require('jest-expo/src/preset/moduleMocks/expoModules.js');

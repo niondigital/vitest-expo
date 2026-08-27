@@ -1,6 +1,6 @@
 /**
  * AUTO-GENERATED — do not edit by hand.
- * Vendored from jest-expo@57.0.4 (Expo, MIT):
+ * Vendored from jest-expo@57.0.5 (Expo, MIT):
  * src/preset/moduleMocks/{expoModules,thirdPartyModules,internalExpoModules}.js
  * merged in jest-expo setup.js order. Regenerate via:
  *   node scripts/import-jest-expo-mocks.mjs
@@ -17,7 +17,7 @@ export interface ModulePropertySpec {
 
 export type ModuleSpec = Record<string, ModulePropertySpec>;
 
-export const JEST_EXPO_VERSION = '57.0.4';
+export const JEST_EXPO_VERSION = '57.0.5';
 
 export const EXPO_MODULE_SPECS: Record<string, ModuleSpec> = {
   "NativeUnimoduleProxy": {

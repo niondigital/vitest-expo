@@ -10,9 +10,9 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
+import { jestExpoRequire } from './resolve-jest-expo.mjs';
 
-const require = createRequire(import.meta.url);
+const require = jestExpoRequire();
 const specFile = path.join(import.meta.dirname, '..', 'src', 'runtime', 'expo-module-specs.ts');
 
 const header = fs.readFileSync(specFile, 'utf8').slice(0, 500);
