@@ -142,7 +142,7 @@ interface RouterScreen {
   getPathname(): string;
   getPathnameWithParams(): string;
   getSegments(): string[];
-  getSearchParams(): Record<string, string | string[]>;
+  getSearchParams(): SearchParams;
   getRouterState(): unknown;
 }
 

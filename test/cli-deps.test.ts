@@ -1,4 +1,5 @@
 import { checkDependencies, installLine } from '../src/cli/deps';
+import { readFileSync } from 'node:fs';
 import { project, json } from './helpers';
 
 /** A project whose package.json declares the given dev dependencies. */
@@ -12,9 +13,23 @@ describe('checkDependencies', () => {
   it('lists what a plain jest-expo project still needs', () => {
     const report = checkDependencies(withDevDeps({ jest: '^29.7.0', 'jest-expo': '~57.0.0' }));
     expect(report.missing).toEqual(
-      expect.arrayContaining(['vitest-expo', 'vitest-native', '@react-native/babel-preset'])
+      expect.arrayContaining([
+        'vitest-expo',
+        expect.stringMatching(/^vitest-native@\^0\.14/),
+        '@react-native/babel-preset',
+      ])
     );
     expect(report.removable).toEqual(expect.arrayContaining(['jest', 'jest-expo']));
+  });
+
+  it('asks for the engine range this package declares, and flags an older one', () => {
+    const own = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    const range = own.peerDependencies['vitest-native'];
+    expect(checkDependencies(withDevDeps({})).missing).toContain(`vitest-native@${range}`);
+    const older = checkDependencies(withDevDeps({ 'vitest-native': '^0.13.0' }));
+    expect(older.present).toContain('vitest-native');
+    expect(older.notes.join(' ')).toMatch(/vitest-native \^0\.13\.0 is installed, but vitest-expo requires/);
+    expect(checkDependencies(withDevDeps({ 'vitest-native': '^0.14.0' })).notes.join(' ')).not.toMatch(/vitest-native/);
   });
 
   it('pins @babel/core to 7 when it is absent, and warns when the project is on 8', () => {

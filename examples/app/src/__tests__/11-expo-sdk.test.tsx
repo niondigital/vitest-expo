@@ -39,7 +39,7 @@ describe('core expo SDK modules', () => {
     expect(typeof Clipboard.setStringAsync).toBe('function');
   });
 
-  it('expo-file-system exposes the SDK 57 File/Paths API', () => {
+  it('expo-file-system exposes the SDK 58 File/Paths API', () => {
     expect(File).toBeTruthy();
     expect(Paths).toBeTruthy();
   });

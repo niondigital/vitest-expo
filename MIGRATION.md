@@ -47,7 +47,7 @@ Config files that cannot be read without executing them (TypeScript, ESM, or com
 None of this needs an edit:
 
 - **`jest.mock` walls in setup files**, including stateful fakes. A setup file that registers mocks for the whole suite works the same way here, closures and all.
-- **`jest.requireActual` partial mocks**, including specifiers that go through a tsconfig path alias (`jest.requireActual('@/lib/config')`). The plugin hands its resolved alias table to the runtime, and extensionless TypeScript imports resolve Metro-style.
+- **`jest.requireActual` partial mocks**, including specifiers that go through a tsconfig path alias (`jest.requireActual('@/lib/config')`). The engine resolves the project's aliases for it, and extensionless TypeScript imports resolve Metro-style.
 - **`__mocks__` directories** next to the mocked module, applied through an explicit `jest.mock('pkg')` call.
 - **Automocks** — `jest.mock('pkg')` without a factory.
 - **Spies**: `jest.spyOn` on objects, on prototypes, and on module namespace objects.

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { readJsonc } from './json';
@@ -38,7 +39,16 @@ export function checkDependencies(root: string): DependencyReport {
   };
 
   need('vitest-expo');
-  need('vitest-native');
+  // The engine range this package declares as its peer, so the install line
+  // never names a release the peer check would then refuse.
+  const engineRange = ownPeerRange('vitest-native');
+  need('vitest-native', `vitest-native@${engineRange}`);
+  const engineVersion = installedVersion(require, 'vitest-native') ?? declared['vitest-native'];
+  if (engineVersion && isBelow(engineVersion, engineRange)) {
+    notes.push(
+      `vitest-native ${engineVersion} is installed, but vitest-expo requires ${engineRange} — upgrade with: npm install -D vitest-native@${engineRange}`
+    );
+  }
   // Vitest's peer. npm installs it on its own; yarn does not.
   need('vite', 'vite@^8');
   need('@testing-library/react-native');
@@ -111,6 +121,32 @@ export function checkDependencies(root: string): DependencyReport {
 
 export function installLine(missing: string[]): string {
   return `npm install -D ${missing.join(' ')}`;
+}
+
+/** A peer range from this package's own manifest ('*' when it cannot be read). */
+function ownPeerRange(name: string): string {
+  try {
+    const own = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    return own.peerDependencies?.[name] ?? '*';
+  } catch {
+    return '*';
+  }
+}
+
+/** Whether a version (or a declared range's base) is below the floor of a range. */
+function isBelow(version: string, range: string): boolean {
+  const floor = numeric(range);
+  const value = numeric(version);
+  if (!floor || !value) return false;
+  for (let i = 0; i < 3; i++) {
+    if (value[i] !== floor[i]) return value[i] < floor[i];
+  }
+  return false;
+}
+
+function numeric(spec: string): [number, number, number] | null {
+  const match = /(\d+)\.(\d+)\.(\d+)/.exec(spec);
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
 }
 
 function resolves(require: NodeRequire, name: string): boolean {

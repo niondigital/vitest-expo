@@ -7,8 +7,8 @@ import {
   jestCompatSetup,
   jestMockTransform,
 } from 'vitest-native/jest-compat';
-import { transformWithEsbuild, type Plugin } from 'vite';
-import { syntaxCompatPlugin } from './syntax-compat';
+import { type Plugin } from 'vite';
+import { syntaxCompatPlugin, transformJsx } from './syntax-compat';
 import { consoleNoiseFilter, type ConsoleNoiseOptions } from './runtime/console-noise';
 import { debug } from './runtime/debug';
 
@@ -70,12 +70,13 @@ export interface VitestExpoOptions {
 /**
  * Vite plugin preset that makes an Expo app testable under Vitest.
  *
- * Layering: vitest-native carries the React Native core (transform pipeline,
- * native-module boundary, platform extensions, library presets). This plugin adds
- * the Expo layer on top — environment parity with babel-preset-expo, the
- * vitest-expo runtime setup (jest-expo-style snapshot serializer), and inlining
- * of vitest-expo itself so its React/RN-importing modules run inside the Vite
- * module graph instead of being externalized to Node.
+ * Layering: vitest-native carries the React Native core and, since 0.14, the
+ * Expo native-module boundary (transform pipeline, platform extensions, library
+ * presets, Expo's module data). This plugin adds what sits above that — the
+ * app config in the native manifest, the router import mode babel-preset-expo
+ * would inline, the jest-expo-style snapshot serializer, the console filters —
+ * and inlines vitest-expo itself so its React-importing modules run inside the
+ * Vite module graph instead of being externalized to Node.
  */
 export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   const platform = options.platform ?? 'ios';
@@ -91,9 +92,10 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   }
 
   const rn = reactNative({
-    // Everything vitest-expo layers on (globalThis.expo, real Expo package JS,
-    // the native-module registry) assumes real React Native — the pure-JS mock
-    // engine silently invalidates all of it, so never auto-degrade to it.
+    // Everything vitest-expo layers on (the app config in the native manifest,
+    // the router port, the real Expo package JS the engine runs) assumes real
+    // React Native — the pure-JS mock engine silently invalidates all of it,
+    // so never auto-degrade to it.
     engine: 'native',
     ...options.reactNative,
     platform,
@@ -111,7 +113,7 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     async transform(code, id) {
       if (transformPackages.length === 0 || !id.endsWith('.js')) return null;
       if (!transformPackages.some((pkg) => id.includes(`/node_modules/${pkg}/`))) return null;
-      return transformWithEsbuild(code, id, { loader: 'jsx', jsx: 'automatic' });
+      return transformJsx(code, id);
     },
   };
 
@@ -294,8 +296,6 @@ function mergeTransform(
   return { ...theirs, include: [...ours, ...(theirs.include ?? [])] };
 }
 
-
-
 /**
  * The package major tracks the Expo SDK it is verified against (58.x is for
  * SDK 58), so a mismatch is worth one line at config time. Not expressed as a
@@ -320,7 +320,6 @@ function warnOnSdkMismatch(root: string): void {
     debug('sdk-check', 'could not compare the Expo SDK version', error);
   }
 }
-
 
 function normalizeSetupFiles(value: unknown): string[] {
   if (typeof value === 'string') return [value];

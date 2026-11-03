@@ -1,7 +1,6 @@
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import * as vite from 'vite';
-import { type Plugin } from 'vite';
+import { transformWithOxc, type Plugin } from 'vite';
 import { debug } from './runtime/debug';
 
 /**
@@ -11,6 +10,14 @@ import { debug } from './runtime/debug';
  * transforms without edits. Applies to app code only — node_modules either
  * ship compiled output or are handled by the engine's React Native transform.
  */
+/**
+ * JSX in a .js file, through Vite's own transformer (Oxc on Vite 8). Used for
+ * Flow files here and for the `transformPackages` allowlist in the plugin.
+ */
+export function transformJsx(code: string, file: string, map?: object) {
+  return transformWithOxc(code, file, { lang: 'jsx', jsx: { runtime: 'automatic' } }, map);
+}
+
 export function syntaxCompatPlugin(): Plugin {
   return {
     name: 'vitest-expo:syntax-compat',
@@ -49,23 +56,10 @@ export function syntaxCompatPlugin(): Plugin {
 
       if (!result) return null;
 
-      // Flow files may still contain JSX in .js — esbuild's default 'js'
-      // loader would reject it, so finish with an explicit jsx pass (mirrors
-      // the jsx-in-js handling for allowlisted packages).
+      // Flow files may still contain JSX in .js, which the default 'js'
+      // loader rejects, so finish with an explicit jsx pass.
       if (file.endsWith('.js') || file.endsWith('.jsx')) {
-        // Rolldown-based Vite deprecates transformWithEsbuild; prefer the Oxc
-        // equivalent where it exists (same jsx handling, different options
-        // shape), fall back for esbuild-based Vite 6.
-        const oxc = (vite as Record<string, any>).transformWithOxc;
-        if (typeof oxc === 'function') {
-          return oxc(result.code, file, { lang: 'jsx', jsx: { runtime: 'automatic' } }, result.map ?? undefined);
-        }
-        return vite.transformWithEsbuild(
-          result.code,
-          file,
-          { loader: 'jsx', jsx: 'automatic' },
-          result.map ?? undefined
-        );
+        return transformJsx(result.code, file, result.map ?? undefined);
       }
       return result;
     },

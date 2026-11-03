@@ -12,7 +12,7 @@ import { GreetingService, formatGreeting, GREETING_PREFIX } from '@/services/gre
 
 // Factory mock of a local module, partial via requireActual (keep GREETING_PREFIX).
 jest.mock('@/services/greeting-service', () => {
-  // Aliased specifiers work in requireActual: vitest-expo expands the
+  // Aliased specifiers work in requireActual: the engine expands the
   // project's resolve aliases (and Metro-style extensionless TS) before
   // delegating to Node resolution.
   const actual = jest.requireActual('@/services/greeting-service');

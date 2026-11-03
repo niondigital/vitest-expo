@@ -10,7 +10,7 @@ Expo SDK 58, and a package that is half the size because the engine underneath n
 - Assets are registered ids, as in an app built with Metro. A test that handed `Font.loadAsync()` or `useFonts()` a made-up numeric id gets the error a device would give; a bundled `require('./font.ttf')` or a `{ uri }` source loads.
 - `vitest-expo/router` follows expo-router 58, which keeps the current route in `navigationRef` instead of the former `router-store`. Its matchers are typed with Vitest 5's assertion generics.
 - `EXPO_PROJECT_ROOT` is no longer set in the test environment; jest-expo does not set it either. It is a build-time input of babel-preset-expo.
-- `vitest-expo migrate` and `init` ask for Vitest 5, and for `vite`, which Vitest 5 declares as a peer: npm installs it on its own, yarn does not.
+- `vitest-expo migrate` and `init` ask for Vitest 5, for `vite` (Vitest 5 declares it as a peer: npm installs it on its own, yarn does not), and for the vitest-native range this package declares, so the install line never names a release the peer check would refuse.
 - Vitest 5 hides the console output of passing tests by default (`silent: 'passed-only'`). The console filters apply to whatever is shown; `silent: false` shows everything, as Vitest 4 did.
 - Example app and jest-expo reference on SDK 58: React Native 0.88, React 19.3, expo-router 58, Jest 30.
 

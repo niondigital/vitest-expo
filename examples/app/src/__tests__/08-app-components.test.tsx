@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 /**
- * Real components from the SDK 57 default template — exercises theme hooks,
+ * Real components from the SDK 58 default template — exercises theme hooks,
  * path aliases (@/), and template idioms rather than synthetic fixtures.
  */
 describe('real template components', () => {

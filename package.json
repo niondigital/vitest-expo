@@ -15,7 +15,7 @@
   ],
   "type": "module",
   "engines": {
-    "node": ">=22.13"
+    "node": ">=22.13 <23 || >=24.3"
   },
   "exports": {
     ".": {
@@ -68,7 +68,7 @@
     "pack:local": "npm run build && npm pack --workspaces=false --pack-destination /tmp"
   },
   "dependencies": {
-    "@oxc-project/runtime": "^0.144.0",
+    "@oxc-project/runtime": ">=0.144.0 <1",
     "pretty-format": "^30.0.0"
   },
   "peerDependencies": {
