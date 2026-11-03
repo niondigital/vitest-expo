@@ -1,5 +1,6 @@
 # Publishes a tagged version to npm with provenance, after the same gates CI
-# runs. Trigger: push a tag (v58.0.1) or run the workflow manually.
+# runs. Trigger: push a tag (v58.0.1, or v58.0.0-rc.1 for a prerelease, which
+# goes to the `next` dist-tag) or run the workflow manually.
 name: Release
 
 on:
@@ -48,4 +49,9 @@ jobs:
       # workflow registered as a trusted publisher, so there is no token to
       # store and provenance is generated as part of the publish.
       - name: Publish
-        run: npm publish --provenance --access public --workspaces=false
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          tag=latest
+          case "$version" in *-*) tag=next ;; esac
+          npm publish --provenance --access public --workspaces=false --tag "$tag"

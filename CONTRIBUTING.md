@@ -39,7 +39,7 @@ node scripts/verify-install-layout.mjs npm /tmp     # also: pnpm, yarn, bun
 The major version tracks the Expo SDK the release is verified against (`58.x` → SDK 58); minor and patch follow the usual semantics within it.
 
 1. Update `CHANGELOG.md` and the version in `package.json`.
-2. Tag the commit `v<version>` and push the tag — the release workflow runs the unit tests and the conformance suites, then publishes to npm with provenance.
+2. Tag the commit `v<version>` and push the tag — the release workflow runs the unit tests and the conformance suites, then publishes to npm with provenance. A prerelease version (`58.0.0-rc.1`) goes to the `next` dist-tag and leaves `latest` on the last stable release.
 
 The workflow authenticates over OIDC: npm has this repository and `release.yml` registered as a trusted publisher, so no npm token exists anywhere. Renaming the workflow file or moving the repository breaks that link and needs the trusted-publisher entry updated on npmjs.com.
 
