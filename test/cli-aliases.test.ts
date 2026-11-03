@@ -61,6 +61,12 @@ describe('aliasesFromModuleNameMapper', () => {
     expect(result.entries[0].replacement).toContain('css-stub.js');
   });
 
+  it('anchors an extension mapper to the whole request', () => {
+    const result = aliasesFromModuleNameMapper(root, { '\\.svg$': '<rootDir>/__mocks__/svg.ts' }, []);
+    expect(result.entries[0].find).toBe('^.*\\.svg$');
+    expect(result.entries[0].replacement).toContain('svg.ts');
+  });
+
   it('reports a package redirect it cannot express as an alias', () => {
     const result = aliasesFromModuleNameMapper(root, { '^lodash$': 'lodash-es' }, []);
     expect(result.entries).toEqual([]);
