@@ -16,7 +16,7 @@ npx vitest-expo init
 That writes the config, adds the test script and prints the install line for your project. By hand it is:
 
 ```bash
-npm install -D vitest-expo vitest vitest-native @testing-library/react-native test-renderer
+npm install -D vitest-expo vitest vite vitest-native @testing-library/react-native test-renderer
 ```
 
 ```ts

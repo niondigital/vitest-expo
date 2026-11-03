@@ -39,6 +39,8 @@ export function checkDependencies(root: string): DependencyReport {
 
   need('vitest-expo');
   need('vitest-native');
+  // Vitest's peer. npm installs it on its own; yarn does not.
+  need('vite', 'vite@^8');
   need('@testing-library/react-native');
 
   // Vitest 5 is required. An older install only surfaces as a package-manager

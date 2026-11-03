@@ -50,6 +50,8 @@ const files = {
       // RNTL 14's renderer peer. npm installs peers on its own; yarn does not,
       // so the scaffold declares it the way a real project has to.
       'test-renderer': '^1.0.0',
+      // Vitest's own peer, for the same reason.
+      vite: '^8',
       vitest: '^5',
       'vitest-expo': `file:${tarball}`,
       // The engine range the packed vitest-expo declares as its peer.

@@ -15,7 +15,7 @@ npx vitest-expo migrate
 Run this in the project root, next to `package.json`. It reads the Jest config, writes `vitest.config.mts`, points the `test` script at Vitest while keeping the Jest run as `test:jest`, and prints a report of everything it could not translate.
 
 ```bash
-npm install -D vitest-expo vitest vitest-native @testing-library/react-native test-renderer
+npm install -D vitest-expo vitest vite vitest-native @testing-library/react-native test-renderer
 npm test
 ```
 
