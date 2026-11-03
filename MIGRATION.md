@@ -313,7 +313,7 @@ Suites staying on RNTL 13 are unaffected — both majors are supported. Note the
 
 ### SVG files imported as components
 
-A project on react-native-svg-transformer renders `import Icon from './icon.svg'` as a component. When the transformer is installed, vitest-expo resolves such an import from app code to a stand-in: a host element named after the file, extension included (`<icon.svg testID="…" />`), which is what the `.svg` mocks these projects carry for Jest render as well. Props pass through, so `testID` queries and snapshots work; a `moduleNameMapper` entry for `.svg` is no longer needed and is best dropped. Without the transformer, an `.svg` is an asset like any image.
+A project on react-native-svg-transformer renders `import Icon from './icon.svg'` as a component. When the transformer is installed, vitest-expo resolves such an import from app code to a stand-in: a host element named after the file, extension included (`<icon.svg testID="…" />`), which is what the `.svg` mocks these projects carry for Jest render as well. Props pass through, so `testID` queries and snapshots work; a `moduleNameMapper` entry for `.svg` is no longer needed and is best dropped. The switch is the installed package, not the Metro config: a project that has the transformer installed without wiring it into `metro.config.js` gets the stand-in too. Without the transformer, an `.svg` is an asset like any image.
 
 ### Native event emitters at module scope
 

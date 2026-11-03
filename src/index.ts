@@ -87,7 +87,7 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     silenceWarnings: options.silenceWarnings,
   };
   const transformPackages = options.transformPackages ?? [];
-  const svgComponents = svgComponentsPlugin(process.cwd());
+  const svgComponents = svgComponentsPlugin();
 
   if (platform === 'web') {
     return webPlugins(jestCompat, noise, svgComponents);
@@ -160,7 +160,7 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   return [
     // Before the engine, whose resolver would otherwise register the file as
     // an asset.
-    ...(svgComponents ? [svgComponents] : []),
+    svgComponents,
     rn,
     ...(jestCompat ? [jestMockTransform()] : []),
     syntaxCompatPlugin(),
@@ -202,11 +202,7 @@ export function vitestExpoProjects(options: VitestExpoProjectsOptions = {}) {
  * entirely; what remains is aliasing, web-first extension resolution and a
  * small runtime setup.
  */
-function webPlugins(
-  jestCompat: boolean,
-  noise: ConsoleNoiseOptions,
-  svgComponents: Plugin | null
-): Plugin[] {
+function webPlugins(jestCompat: boolean, noise: ConsoleNoiseOptions, svgComponents: Plugin): Plugin[] {
   const webPlugin: Plugin = {
     name: 'vitest-expo:web',
     config(userConfig) {
@@ -267,12 +263,7 @@ function webPlugins(
     },
   };
 
-  return [
-    ...(svgComponents ? [svgComponents] : []),
-    ...(jestCompat ? [jestMockTransform()] : []),
-    syntaxCompatPlugin(),
-    webPlugin,
-  ];
+  return [svgComponents, ...(jestCompat ? [jestMockTransform()] : []), syntaxCompatPlugin(), webPlugin];
 }
 
 /**
