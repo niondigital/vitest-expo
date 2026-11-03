@@ -9,6 +9,7 @@ import {
 } from 'vitest-native/jest-compat';
 import { type Plugin } from 'vite';
 import { syntaxCompatPlugin } from './syntax-compat';
+import { svgComponentsPlugin } from './svg-components';
 import { consoleNoiseFilter, type ConsoleNoiseOptions } from './runtime/console-noise';
 import { debug } from './runtime/debug';
 
@@ -86,9 +87,10 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     silenceWarnings: options.silenceWarnings,
   };
   const transformPackages = options.transformPackages ?? [];
+  const svgComponents = svgComponentsPlugin(process.cwd());
 
   if (platform === 'web') {
-    return webPlugins(jestCompat, noise);
+    return webPlugins(jestCompat, noise, svgComponents);
   }
 
   const rn = reactNative({
@@ -156,6 +158,9 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   };
 
   return [
+    // Before the engine, whose resolver would otherwise register the file as
+    // an asset.
+    ...(svgComponents ? [svgComponents] : []),
     rn,
     ...(jestCompat ? [jestMockTransform()] : []),
     syntaxCompatPlugin(),
@@ -197,7 +202,11 @@ export function vitestExpoProjects(options: VitestExpoProjectsOptions = {}) {
  * entirely; what remains is aliasing, web-first extension resolution and a
  * small runtime setup.
  */
-function webPlugins(jestCompat: boolean, noise: ConsoleNoiseOptions): Plugin[] {
+function webPlugins(
+  jestCompat: boolean,
+  noise: ConsoleNoiseOptions,
+  svgComponents: Plugin | null
+): Plugin[] {
   const webPlugin: Plugin = {
     name: 'vitest-expo:web',
     config(userConfig) {
@@ -258,7 +267,12 @@ function webPlugins(jestCompat: boolean, noise: ConsoleNoiseOptions): Plugin[] {
     },
   };
 
-  return [...(jestCompat ? [jestMockTransform()] : []), syntaxCompatPlugin(), webPlugin];
+  return [
+    ...(svgComponents ? [svgComponents] : []),
+    ...(jestCompat ? [jestMockTransform()] : []),
+    syntaxCompatPlugin(),
+    webPlugin,
+  ];
 }
 
 /**

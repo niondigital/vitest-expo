@@ -311,6 +311,24 @@ for (const mode of modes) {
 
 Suites staying on RNTL 13 are unaffected — both majors are supported. Note the renderer package differs between them: RNTL 14 peers on the standalone `test-renderer`, RNTL 13 on `react-test-renderer` at the project's React version. npm installs that peer on its own; yarn and strict pnpm layouts need it declared.
 
+### SVG files imported as components
+
+A project on react-native-svg-transformer renders `import Icon from './icon.svg'` as a component. When the transformer is installed, vitest-expo resolves such an import from app code to a stand-in: a host element named after the file, which is what the `.svg` mocks these projects carry for Jest render as well. Props pass through, so `testID` queries and snapshots work; a `moduleNameMapper` entry for `.svg` is no longer needed and is best dropped. Without the transformer, an `.svg` is an asset like any image.
+
+### Native event emitters at module scope
+
+A package that does `new NativeEventEmitter(NativeModules.SomeModule)` while it loads throws under the native engine when the app has no such native module: the registry answers as a device does, and the emitter's iOS invariant refuses `undefined`. jest-expo never saw this, because React Native's Jest setup replaces the emitter class. Register the module in a setup file, with the two methods the emitter calls, and the package loads as itself:
+
+```ts
+import { mockNativeModule } from 'vitest-native/helpers';
+
+mockNativeModule('SomeModule', { addListener() {}, removeListeners() {} });
+```
+
+### Spying on host instance methods
+
+Under jest-expo a host view's methods are `jest.fn` mocks, so suites call `instance.measureLayout.mockImplementation(…)`. Under the native engine they are the real methods. `vi.spyOn(instance, 'measureLayout').mockImplementation(…)` works on both runners.
+
 ### Path aliases in babel.config.js
 
 App code is transformed by Vite, so Babel plugins from the project's `babel.config.js` do not run. The one plugin that silently changes module resolution is `babel-plugin-module-resolver` — mirror its aliases in the Vitest config instead:
