@@ -8,6 +8,15 @@ export interface AliasEntry {
   replacement: string;
   /** Where the entry came from, for the report. */
   origin: string;
+  /**
+   * For a directory rewrite (`@/*` → `src/*`): the same alias as a string
+   * `find` without the separator, which Vite matches as the request or the
+   * request's first segment. Emitted in that form, because only string finds
+   * reach `jest.requireActual`; a RegExp cannot cross into the test worker.
+   */
+  stringFind?: string;
+  /** The directory expression that goes with `stringFind`. */
+  stringReplacement?: string;
 }
 
 export interface AliasResult {
@@ -43,6 +52,8 @@ export function aliasesFromTsconfig(root: string): AliasEntry[] {
         find: `^${escapeRegex(prefix)}`,
         replacement: `${resolveExpr(base, root, dir)} + '/'`,
         origin: `tsconfig paths "${pattern}"`,
+        stringFind: prefix.slice(0, -1),
+        stringReplacement: resolveExpr(base, root, dir),
       });
       continue;
     }
@@ -153,6 +164,7 @@ function prefixAlias(
     find: `^${escapeRegex(prefix)}`,
     replacement: trailingSlash ? `${resolved} + '/'` : resolved,
     origin: `moduleNameMapper "${pattern}"`,
+    ...(trailingSlash ? { stringFind: prefix.slice(0, -1), stringReplacement: resolved } : {}),
   };
 }
 

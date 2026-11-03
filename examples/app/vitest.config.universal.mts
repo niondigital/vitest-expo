@@ -20,6 +20,7 @@ export default defineConfig({
 			test: {
 				...project.test,
 				globals: true,
+				silent: false,
 				setupFiles: ['./test-setup.mocks.ts'],
 				include: [
 					'src/__tests__/01-render-query.test.tsx',

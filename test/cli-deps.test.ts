@@ -30,6 +30,14 @@ describe('checkDependencies', () => {
     expect(older.present).toContain('vitest-native');
     expect(older.notes.join(' ')).toMatch(/vitest-native \^0\.13\.0 is installed, but vitest-expo requires/);
     expect(checkDependencies(withDevDeps({ 'vitest-native': '^0.14.0' })).notes.join(' ')).not.toMatch(/vitest-native/);
+    // A prerelease floor admits the same base only from that prerelease on.
+    expect(checkDependencies(withDevDeps({ 'vitest-native': '0.14.0-rc.5' })).notes.join(' ')).toMatch(/vitest-native 0\.14\.0-rc\.5 is installed/);
+    expect(checkDependencies(withDevDeps({ 'vitest-native': '0.14.0-rc.11' })).notes.join(' ')).not.toMatch(/vitest-native/);
+  });
+
+  it('flags a Vite below 8', () => {
+    expect(checkDependencies(withDevDeps({ vite: '^7.1.0' })).notes.join(' ')).toMatch(/requires Vite 8/);
+    expect(checkDependencies(withDevDeps({ vite: '^8.2.0' })).notes.join(' ')).not.toMatch(/Vite 8/);
   });
 
   it('pins @babel/core to 7 when it is absent, and warns when the project is on 8', () => {

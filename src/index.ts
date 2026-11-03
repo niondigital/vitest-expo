@@ -8,7 +8,7 @@ import {
   jestMockTransform,
 } from 'vitest-native/jest-compat';
 import { type Plugin } from 'vite';
-import { syntaxCompatPlugin, transformJsx } from './syntax-compat';
+import { syntaxCompatPlugin } from './syntax-compat';
 import { consoleNoiseFilter, type ConsoleNoiseOptions } from './runtime/console-noise';
 import { debug } from './runtime/debug';
 
@@ -24,7 +24,7 @@ export interface VitestExpoOptions {
    */
   platform?: 'ios' | 'android' | 'web';
   /** Escape hatch: options forwarded verbatim to vitest-native's reactNative() plugin. */
-  reactNative?: Omit<ReactNativeOptions, 'platform'>;
+  reactNative?: Omit<ReactNativeOptions, 'platform' | 'engine'>;
   /**
    * Jest compatibility layer (default: true). Hoists `jest.mock(...)` calls,
    * provides a `jest` global backed by `vi`, and shims Jest-only modules —
@@ -35,7 +35,7 @@ export interface VitestExpoOptions {
    * node_modules packages that ship untranspiled JSX/Flow in .js files but are
    * not auto-detected (e.g. they declare react-native only as a peer
    * dependency). The equivalent of extending Jest's transformIgnorePatterns
-   * allowlist — applied on both module graphs.
+   * allowlist — handed to the engine's Node-side transform.
    */
   transformPackages?: string[];
   /**
@@ -92,30 +92,15 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   }
 
   const rn = reactNative({
+    ...options.reactNative,
+    platform,
     // Everything vitest-expo layers on (the app config in the native manifest,
     // the router port, the real Expo package JS the engine runs) assumes real
     // React Native — the pure-JS mock engine silently invalidates all of it,
     // so never auto-degrade to it.
     engine: 'native',
-    ...options.reactNative,
-    platform,
-    // Metro treats .xml as an asset (Android vector drawables — expo-router
-    // ships arrow_right.xml etc.); vitest-native's default list lacks it.
-    assetExts: ['.xml', ...(options.reactNative?.assetExts ?? [])],
     transform: mergeTransform(transformPackages, options.reactNative?.transform),
   });
-
-  // Vite-graph counterpart of the `transform` allowlist: packages shipping
-  // JSX in .js would fail Vite's import analysis.
-  const jsxInJsPlugin: Plugin = {
-    name: 'vitest-expo:jsx-in-js',
-    enforce: 'pre',
-    async transform(code, id) {
-      if (transformPackages.length === 0 || !id.endsWith('.js')) return null;
-      if (!transformPackages.some((pkg) => id.includes(`/node_modules/${pkg}/`))) return null;
-      return transformJsx(code, id);
-    },
-  };
 
   const expoPlugin: Plugin = {
     name: 'vitest-expo',
@@ -156,10 +141,6 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
               // Expo and React Native packages belong to the engine, which
               // loads them through Node and refuses to share them with Vite.
               inline: ['vitest-expo'],
-              // transformPackages run through the engine's Node-side Babel
-              // pipeline (JSX/Flow handled there); keeping them external stops
-              // Vite from pulling their CJS `require('react-native')` graph in.
-              external: transformPackages,
             },
           },
           env: {
@@ -178,7 +159,6 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     rn,
     ...(jestCompat ? [jestMockTransform()] : []),
     syntaxCompatPlugin(),
-    jsxInJsPlugin,
     expoPlugin,
   ].flat();
 }

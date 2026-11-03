@@ -51,6 +51,11 @@ export function checkDependencies(root: string): DependencyReport {
   }
   // Vitest's peer. npm installs it on its own; yarn does not.
   need('vite', 'vite@^8');
+  const viteVersion = installedVersion(require, 'vite') ?? declared.vite;
+  const viteMajor = Number(major(viteVersion ?? ''));
+  if (Number.isFinite(viteMajor) && viteMajor < 8) {
+    notes.push(`vite ${viteVersion} is installed, but vitest-expo requires Vite 8 — upgrade with: npm install -D vite@^8`);
+  }
   need('@testing-library/react-native');
 
   // Vitest 5 is required. An older install only surfaces as a package-manager
@@ -133,7 +138,11 @@ function ownPeerRange(name: string): string {
   }
 }
 
-/** Whether a version (or a declared range's base) is below the floor of a range. */
+/**
+ * Whether a version (or a declared range's base) is below the floor of a
+ * range. A prerelease floor (`^0.14.0-rc.11`) admits the same base only from
+ * that prerelease on, the way npm reads it.
+ */
 function isBelow(version: string, range: string): boolean {
   const floor = numeric(range);
   const value = numeric(version);
@@ -141,12 +150,23 @@ function isBelow(version: string, range: string): boolean {
   for (let i = 0; i < 3; i++) {
     if (value[i] !== floor[i]) return value[i] < floor[i];
   }
-  return false;
+  const floorPre = prerelease(range);
+  if (floorPre === null) return false;
+  const valuePre = prerelease(version);
+  // The release itself is above every prerelease of its base.
+  if (valuePre === null) return false;
+  return valuePre < floorPre;
 }
 
 function numeric(spec: string): [number, number, number] | null {
   const match = /(\d+)\.(\d+)\.(\d+)/.exec(spec);
   return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+}
+
+/** The numeric part of a prerelease tag (`-rc.11` → 11), or null without one. */
+function prerelease(spec: string): number | null {
+  const match = /\d+\.\d+\.\d+-[a-z]+\.?(\d+)/i.exec(spec);
+  return match ? Number(match[1]) : null;
 }
 
 function resolves(require: NodeRequire, name: string): boolean {

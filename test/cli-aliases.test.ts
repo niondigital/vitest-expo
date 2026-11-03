@@ -9,6 +9,11 @@ describe('aliasesFromTsconfig', () => {
     const [entry] = aliasesFromTsconfig(root);
     expect(entry.find).toBe('^@/');
     expect(entry.replacement).toContain('src');
+    // The form the config is written in: a string find, so that
+    // jest.requireActual('@/…') resolves through it as well.
+    expect(entry.stringFind).toBe('@');
+    expect(entry.stringReplacement).toContain('src');
+    expect(entry.stringReplacement).not.toMatch(/\+ '\/'$/);
     expect(entry.origin).toContain('tsconfig');
   });
 

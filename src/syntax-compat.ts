@@ -3,21 +3,19 @@ import { createRequire } from 'node:module';
 import { transformWithOxc, type Plugin } from 'vite';
 import { debug } from './runtime/debug';
 
-/**
- * Babel-only syntax that babel-preset-expo accepts in app code but esbuild
- * does not: the `export default from` proposal and Flow-annotated .js files.
- * Both are handled here so that source written for a Metro/jest-expo pipeline
- * transforms without edits. Applies to app code only — node_modules either
- * ship compiled output or are handled by the engine's React Native transform.
- */
-/**
- * JSX in a .js file, through Vite's own transformer (Oxc on Vite 8). Used for
- * Flow files here and for the `transformPackages` allowlist in the plugin.
- */
-export function transformJsx(code: string, file: string, map?: object) {
+/** JSX in a .js file, through Vite's own transformer (Oxc on Vite 8). */
+function transformJsx(code: string, file: string, map?: object) {
   return transformWithOxc(code, file, { lang: 'jsx', jsx: { runtime: 'automatic' } }, map);
 }
 
+/**
+ * Babel-only syntax that babel-preset-expo accepts in app code but Vite's
+ * transformer does not: the `export default from` proposal and Flow-annotated
+ * .js files. Both are handled here so that source written for a Metro/jest-expo
+ * pipeline transforms without edits. Applies to app code only — node_modules
+ * either ship compiled output or are handled by the engine's React Native
+ * transform.
+ */
 export function syntaxCompatPlugin(): Plugin {
   return {
     name: 'vitest-expo:syntax-compat',

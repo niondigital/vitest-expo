@@ -38,7 +38,11 @@ export function renderConfig(input: ConfigInput): string {
     lines.push('    alias: [');
     for (const alias of aliases) {
       lines.push(`      // ${comment(alias.origin)}`);
-      lines.push(`      { find: ${regexLiteral(alias.find)}, replacement: ${alias.replacement} },`);
+      lines.push(
+        alias.stringFind !== undefined
+          ? `      { find: ${JSON.stringify(alias.stringFind)}, replacement: ${alias.stringReplacement} },`
+          : `      { find: ${regexLiteral(alias.find)}, replacement: ${alias.replacement} },`
+      );
     }
     lines.push('    ],');
     lines.push('  },');
