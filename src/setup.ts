@@ -6,7 +6,9 @@
 import { expect } from 'vitest';
 import { jestExpoSnapshotSerializer } from './snapshot/serializer';
 import { applyAppConfig } from './modules/expo-constants';
+import { installDevBuildModel } from './runtime/dev-build';
 
 expect.addSnapshotSerializer(jestExpoSnapshotSerializer);
 
+installDevBuildModel();
 applyAppConfig();
