@@ -49,11 +49,11 @@ describe('environment inlining', () => {
     expect(process.env.EXPO_ROUTER_IMPORT_MODE).toBe('sync');
   });
 
-  it('exposes the project root and leaves the router-root variables unset', () => {
-    expect(process.env.EXPO_PROJECT_ROOT).toBeTruthy();
-    expect(process.env.EXPO_PROJECT_ROOT?.replace(/\\/g, '/')).toMatch(/\/examples\/app$/);
+  it('leaves the project-root and router-root variables unset', () => {
+    // Build-time inputs of babel-preset-expo, not part of the test environment.
     // The router-root transform is skipped under NODE_ENV=test — expo-router's
     // testing utilities supply the route map instead.
+    expect(process.env.EXPO_PROJECT_ROOT).toBeUndefined();
     expect(process.env.EXPO_ROUTER_APP_ROOT).toBeUndefined();
     expect(process.env.EXPO_ROUTER_ABS_APP_ROOT).toBeUndefined();
   });

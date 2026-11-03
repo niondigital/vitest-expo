@@ -12,15 +12,15 @@ import React from 'react';
 import { vi, expect } from 'vitest';
 import * as rntl from '@testing-library/react-native';
 // Runner-agnostic internals reused from expo-router (no `exports` field, deep
-// imports are stable within a pinned minor).
+// imports are verified per supported SDK).
 import { ExpoRoot } from 'expo-router/build/ExpoRoot';
-import { store } from 'expo-router/build/global-state/router-store';
 import { router } from 'expo-router/build/imperative-api';
 import {
   getMockConfig,
   getMockContext,
   type MockContextConfig,
 } from 'expo-router/build/testing-library/mock-config';
+import { routeInfoSource } from './route-info';
 
 export { getMockConfig, getMockContext };
 export type { MockContextConfig };
@@ -48,21 +48,23 @@ export interface RouterRenderResult extends RenderResult {
   getRouterState(): unknown;
 }
 
+const routeInfo = await routeInfoSource();
+
 const routerInfoHelpers = {
   getPathname(): string {
-    return store.getRouteInfo().pathname;
+    return routeInfo.current().pathname;
   },
   getSegments(): string[] {
-    return store.getRouteInfo().segments;
+    return routeInfo.current().segments;
   },
   getSearchParams(): Record<string, string | string[]> {
-    return store.getRouteInfo().params;
+    return routeInfo.current().params;
   },
   getPathnameWithParams(): string {
-    return store.getRouteInfo().pathnameWithParams;
+    return routeInfo.current().pathnameWithParams;
   },
   getRouterState(): unknown {
-    return store.state;
+    return routeInfo.state();
   },
 };
 
@@ -184,11 +186,11 @@ expect.extend({
 });
 
 declare module 'vitest' {
-  interface Assertion<T> {
-    toHavePathname(expected: string): T;
-    toHavePathnameWithParams(expected: string): T;
-    toHaveSegments(expected: string[]): T;
-    toHaveSearchParams(expected: Record<string, string | string[]>): T;
-    toHaveRouterState(expected: unknown): T;
+  interface Assertion<R extends void | Promise<void> = void, T = unknown> {
+    toHavePathname(expected: string): R;
+    toHavePathnameWithParams(expected: string): R;
+    toHaveSegments(expected: string[]): R;
+    toHaveSearchParams(expected: Record<string, string | string[]>): R;
+    toHaveRouterState(expected: unknown): R;
   }
 }

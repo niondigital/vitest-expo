@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/niondigital/vitest-expo/actions/workflows/ci.yml/badge.svg)](https://github.com/niondigital/vitest-expo/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/vitest-expo)](https://www.npmjs.com/package/vitest-expo)
-[![Expo SDK 57](https://img.shields.io/badge/Expo%20SDK-57-000)](https://docs.expo.dev/)
+[![Expo SDK 57–58](https://img.shields.io/badge/Expo%20SDK-57%E2%80%9358-000)](https://docs.expo.dev/)
 [![license MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 **Test your Expo app with Vitest** — iOS, Android and Web. Real React Native, the testing-library API you know, no test-config maintenance.
@@ -69,7 +69,7 @@ The CLI derives your Vitest config from the existing Jest config, rewires the sc
 
 - **One runner for your whole stack.** The same Vitest you use on web and backend — instant watch mode, native ESM and TypeScript, the Vite ecosystem.
 - **Tests run your app's real JavaScript.** The same React Native code that ships in the app executes in your tests; only the native boundary is mocked.
-- **The Expo SDK works out of the box.** Expo packages run their own JavaScript over a native boundary that is mocked from data specs and from the mocks the packages ship themselves — no per-library setup files, no transform allowlists to maintain.
+- **The Expo SDK works out of the box.** Expo packages run their own JavaScript over a native boundary that is mocked from Expo's own module data and from the mocks the packages ship themselves — no per-library setup files, no transform allowlists to maintain.
 - **Navigation is testable.** `vitest-expo/router` renders your expo-router screens and drives real navigation (see below).
 
 ## Mocking
@@ -160,17 +160,18 @@ One entry covers the Vitest globals and the RNTL matchers (`toBeOnTheScreen`, �
 
 ## Compatibility
 
-The major version tracks the Expo SDK it is verified against, the way jest-expo does it — `vitest-expo@57` is for SDK 57.
+The major version names the newest Expo SDK the release is verified against, the way jest-expo numbers its releases. A release stays verified against the previous SDK for as long as the engine underneath supports both, so `vitest-expo@58` covers SDK 58 and SDK 57.
 
-| vitest-expo | Expo SDK | React Native | Vitest | RNTL |
-|---|---|---|---|---|
-| 57.x | 57 | 0.86 | 4 | 13 · 14 |
+| vitest-expo | Expo SDK | React Native | Vitest | vitest-native | RNTL |
+|---|---|---|---|---|---|
+| 58.x | 57 · 58 | 0.86 · 0.88 | 5 | 0.14 | 13 · 14 |
+| 57.x | 57 | 0.86 | 4 | 0.13 | 13 · 14 |
 
-Node 20 or newer. Install layouts are verified against a packed release — npm, pnpm and yarn (`nodeLinker: node-modules`) on every CI run, bun with the same script by hand. Yarn Plug'n'Play is not supported.
+Node 22.13 or newer, or Node 24.3 or newer. Install layouts are verified against a packed release — npm, pnpm and yarn (`nodeLinker: node-modules`) on every CI run, bun with the same script by hand. Yarn Plug'n'Play is not supported.
 
 ## Why trust it
 
-- **Every release is checked against the reference runner.** [`examples/app`](./examples/app) is one Expo app whose suite runs under *both* runners on iOS, Android and Web — any divergence fails CI, on Node 20 and 22, Linux and Windows.
+- **Every release is checked against the reference runner.** [`examples/app`](./examples/app) is one Expo app whose suite runs under *both* runners on iOS, Android and Web — any divergence fails CI, on Node 22 and 24, Linux and Windows.
 - **Built against real apps, and field-tested on other people's code.** Nine codebases so far: seven public Expo projects migrated with `npx vitest-expo migrate` — most needing no manual change at all — plus two apps in active development, one of which runs its entire suite of ~500 tests on it.
 - **Faster where it counts.** Across the measured suites, cold runs were faster everywhere at less than half the CPU, and warm runs faster in six of seven.
 
@@ -182,10 +183,9 @@ Built on [vitest-native](https://github.com/danfry1/vitest-native), which carrie
 vitest-expo layers the Expo pieces on top of vitest-native (real React Native under Node, transform pipeline, library presets):
 
 - pins the **native engine** — everything the Expo layer provides assumes real React Native, so it never silently degrades to a pure-JS mock
-- **Jest compatibility on by default**: `jest.mock(...)` calls are hoisted, a `jest` global backed by `vi` is provided, `jest.requireActual` understands your resolve aliases with Metro-style extensionless-TS resolution
-- **Node-side resolution hardening** for TS-source Expo packages: extensionless relative imports resolve Metro-style, `.ts` under node_modules transpiles on demand, type-only imports that survived compilation resolve to an empty module
-- the **Expo native-module layer** is driven by data specs, not hand-written rules: a reviewed overlay → module specs vendored from jest-expo (72 modules, materialized as vi.fn mocks with jest-expo's exact semantics) → generic Expo conventions (`*Async` methods resolve, PascalCase properties are native classes). Absence is modeled too: probes like `isRunningInExpoGo()` read false — tests behave like a dev build
-- real app config is injected into `Constants.expoConfig` (from app.json / app.config.ts), and the runtime setup ships a curated snapshot serializer and an `ErrorUtils` stub
+- **Jest compatibility on by default**: `jest.mock(...)` calls are hoisted, a `jest` global backed by `vi` is provided, `jest.requireActual` understands your resolve aliases
+- the **Expo native-module layer** is the engine's, driven by data rather than hand-written rules: Expo's own description of each native module per SDK, the mocks the packages ship themselves, and absence for modules the app does not install — probes like `isRunningInExpoGo()` read false, so tests behave like a dev build
+- real app config is injected into `Constants.expoConfig` (from app.json / app.config.ts), and the runtime setup ships a curated snapshot serializer
 - performance across seven measured real-world suites: cold starts faster everywhere (up to a third, at less than half the CPU), warm full runs faster on six of seven (up to 4x) — only a very wide suite on a many-core machine ran its warm full pass faster under jest-expo
 
 Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vitest-expo/helpers` · `vitest-expo/snapshot-serializer` · `vitest-expo/types` · the `vitest-expo` CLI (`init`, `migrate`).
@@ -196,14 +196,13 @@ Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vit
 <summary><strong>Known limitations</strong></summary>
 
 - On web, `@testing-library/react-native` is not usable — its text-in-`<Text>` invariant fires on DOM hosts. That is runner-independent (`jest-expo/web` fails identically); render web tests via the standalone renderer (`test-renderer`) or React Testing Library
-- `vitest-expo/router` uses deep imports into `expo-router/build/*` (no `exports` field there); verified per Expo SDK — currently SDK 57
+- `vitest-expo/router` uses deep imports into `expo-router/build/*` (no `exports` field there); verified per Expo SDK — currently SDK 57 and 58
 - Jest auto-applies root `__mocks__` for node_modules packages without a call; Vitest needs the explicit `jest.mock('pkg')`
 - Class mocks constructed with `new` need a `function` implementation — arrow implementations are not constructable
 - `jest.requireMock` does not return the live factory instance; import the mocked module instead
 - Partial mocks of app modules with a deep import graph are best written as `vi.mock(path, async (importOriginal) => …)`
 - Existing jest-expo snapshots need one regeneration (deliberate: the serializer renders the real host tree in a curated format)
 - App code is transformed by Vite, not by `babel-preset-expo`. Babel-only syntax still works — `export default from`, Flow-annotated `.js` (with an `@flow` pragma), legacy decorators (with `experimentalDecorators` in tsconfig) — but plugins from the project's `babel.config.js` do not apply; path aliases belong in `resolve.alias`
-- Web tests run in jsdom, and jsdom 30 requires Node 22 or newer — on Node 20, keep jsdom at 29
 - Yarn Plug'n'Play is not supported — the React Native toolchain resolves through a real `node_modules` tree; use `nodeLinker: node-modules` (npm, pnpm and bun layouts all work)
 - `import.meta` is standard ESM meta under Vite, not Expo's import-meta registry
 - `'use dom'` modules run as ordinary React components; they are not rewritten into WebView proxies

@@ -15,6 +15,20 @@ export function syntaxCompatPlugin(): Plugin {
   return {
     name: 'vitest-expo:syntax-compat',
     enforce: 'pre',
+    // Vite's decorator lowering emits imports of its helper package, resolved
+    // from the app file that used the decorator. The helper is a dependency of
+    // this package, not of the app, so it is answered from here with an
+    // absolute path — which also holds under install layouts that do not
+    // hoist it into the app's reach.
+    resolveId(source) {
+      if (!source.startsWith('@oxc-project/runtime/')) return null;
+      try {
+        return createRequire(import.meta.url).resolve(source);
+      } catch (error) {
+        debug('syntax-compat', `could not resolve ${source}`, error);
+        return null;
+      }
+    },
     async transform(code, id) {
       const file = cleanId(id);
       if (file.includes('/node_modules/') || !/\.[jt]sx?$/.test(file)) return null;

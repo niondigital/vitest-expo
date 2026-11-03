@@ -30,10 +30,10 @@ describe('checkDependencies', () => {
     expect(babel7.notes.join(' ')).not.toContain('@babel/core');
   });
 
-  it('requires Vitest 4 and flags an older declared major', () => {
-    expect(checkDependencies(withDevDeps({})).missing).toContain('vitest@^4');
-    expect(checkDependencies(withDevDeps({ vitest: '^3.2.0' })).notes.join(' ')).toMatch(/requires Vitest 4/);
-    expect(checkDependencies(withDevDeps({ vitest: '^4.1.0' })).notes.join(' ')).not.toMatch(/Vitest 4/);
+  it('requires Vitest 5 and flags an older declared major', () => {
+    expect(checkDependencies(withDevDeps({})).missing).toContain('vitest@^5');
+    expect(checkDependencies(withDevDeps({ vitest: '^4.1.0' })).notes.join(' ')).toMatch(/requires Vitest 5/);
+    expect(checkDependencies(withDevDeps({ vitest: '^5.1.0' })).notes.join(' ')).not.toMatch(/Vitest 5/);
   });
 
   it('asks for react-test-renderer at the project react version on RNTL 13', () => {
@@ -69,7 +69,7 @@ describe('checkDependencies', () => {
 
   it('treats declared packages as present', () => {
     const report = checkDependencies(
-      withDevDeps({ 'vitest-expo': '^57.0.0', 'vitest-native': '^0.11.0', vitest: '^4.1.0' })
+      withDevDeps({ 'vitest-expo': '^57.0.0', 'vitest-native': '^0.14.0', vitest: '^5.1.0' })
     );
     expect(report.missing).not.toContain('vitest-expo');
     expect(report.present).toEqual(expect.arrayContaining(['vitest-expo', 'vitest-native', 'vitest']));
@@ -82,6 +82,6 @@ describe('checkDependencies', () => {
 
 describe('installLine', () => {
   it('renders a single install command', () => {
-    expect(installLine(['vitest-expo', 'vitest@^4'])).toBe('npm install -D vitest-expo vitest@^4');
+    expect(installLine(['vitest-expo', 'vitest@^5'])).toBe('npm install -D vitest-expo vitest@^5');
   });
 });

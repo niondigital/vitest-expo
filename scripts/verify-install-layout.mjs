@@ -6,15 +6,32 @@
  * node_modules tree, so an install layout is a genuine compatibility surface:
  * a hoisting difference shows up as a resolution failure, not as a type error.
  *
- * Usage: node scripts/verify-install-layout.mjs <npm|pnpm|yarn|bun> [tarball-dir]
+ * Usage: node scripts/verify-install-layout.mjs <npm|pnpm|yarn|bun> [tarball-dir] [--sdk 57|58]
+ *
+ * The scratch app is an Expo SDK 58 app unless --sdk names the other verified
+ * SDK, which is how the SDK 57 row of the compatibility table is kept honest.
  */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const manager = process.argv[2] ?? 'npm';
-const tarballDir = path.resolve(process.argv[3] ?? os.tmpdir());
+const args = process.argv.slice(2);
+const sdkFlag = args.indexOf('--sdk');
+const sdk = sdkFlag >= 0 ? args.splice(sdkFlag, 2)[1] : '58';
+const manager = args[0] ?? 'npm';
+const tarballDir = path.resolve(args[1] ?? os.tmpdir());
+
+// Pinned per SDK: the Expo package, its expo-constants, and the React and
+// React Native versions that SDK ships.
+const SDKS = {
+  57: { expo: '~57.0.31', 'expo-constants': '~57.0.22', react: '19.2.3', 'react-native': '0.86.3' },
+  58: { expo: '~58.0.22', 'expo-constants': '~58.0.14', react: '19.3.0', 'react-native': '0.88.1' },
+};
+if (!SDKS[sdk]) {
+  console.error(`unknown Expo SDK: ${sdk} (verified: ${Object.keys(SDKS).join(', ')})`);
+  process.exit(1);
+}
 
 const tarball = fs
   .readdirSync(tarballDir)
@@ -28,7 +45,7 @@ if (!tarball) {
 }
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), `layout-${manager}-`));
-console.log(`[${manager}] scratch app: ${root}`);
+console.log(`[${manager}] scratch app: ${root} (Expo SDK ${sdk})`);
 console.log(`[${manager}] tarball: ${tarball}`);
 
 const files = {
@@ -37,22 +54,19 @@ const files = {
     version: '0.0.1',
     private: true,
     scripts: { test: 'vitest run' },
-    dependencies: {
-      expo: '~57.0.13',
-      'expo-constants': '~57.0.11',
-      react: '19.2.3',
-      'react-native': '0.86.2',
-    },
+    dependencies: SDKS[sdk],
     devDependencies: {
       '@babel/core': '^7.25.0',
       '@react-native/babel-preset': '*',
-      '@testing-library/react-native': '^14.0.1',
+      '@testing-library/react-native': '^14.1.0',
       // RNTL 14's renderer peer. npm installs peers on its own; yarn does not,
       // so the scaffold declares it the way a real project has to.
       'test-renderer': '^1.0.0',
-      vitest: '^4',
+      vitest: '^5',
       'vitest-expo': `file:${tarball}`,
-      'vitest-native': '*',
+      // The engine range the packed vitest-expo declares as its peer.
+      'vitest-native': JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+        .peerDependencies['vitest-native'],
     },
   },
   'app.json': { expo: { name: 'layout-check', slug: 'layout-check', scheme: 'layoutcheck' } },

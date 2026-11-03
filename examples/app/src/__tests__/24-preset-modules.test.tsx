@@ -15,6 +15,11 @@ import * as StatusBarModule from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 
+// A remote font source. A bundled `require('./font.ttf')` resolves to a
+// registered asset under vitest-expo and to a test stub under jest-expo, so the
+// two runners only agree on a URI.
+const fontAsset = { uri: 'https://example.com/Font.ttf' };
+
 describe('expo-font', () => {
   it('exposes the full module surface', () => {
     expect(Object.keys(Font).sort()).toEqual([
@@ -33,7 +38,7 @@ describe('expo-font', () => {
   it('useFonts reports the loading state before resolving to loaded', async () => {
     const results: [boolean, Error | null][] = [];
     const Screen = () => {
-      results.push(Font.useFonts({ HookFont: 1 as never }));
+      results.push(Font.useFonts({ HookFont: fontAsset }));
       return <Text>content</Text>;
     };
 
@@ -48,7 +53,7 @@ describe('expo-font', () => {
 
   it('loadAsync marks a font as loaded', async () => {
     expect(Font.isLoaded('ImperativeFont')).toBe(false);
-    await expect(Font.loadAsync('ImperativeFont', 1 as never)).resolves.toBeUndefined();
+    await expect(Font.loadAsync('ImperativeFont', fontAsset)).resolves.toBeUndefined();
     expect(Font.isLoaded('ImperativeFont')).toBe(true);
   });
 
@@ -114,6 +119,7 @@ describe('expo-status-bar', () => {
       'StatusBar',
       'setStatusBarHidden',
       'setStatusBarStyle',
+      'useVerticalBarEdgeIOS',
     ]);
   });
 
@@ -157,6 +163,7 @@ describe('expo-linking', () => {
       'parseInitialURLAsync',
       'resolveScheme',
       'sendIntent',
+      'unwrapDevLaunchURL',
       'useLinkingURL',
       'useURL',
     ]);

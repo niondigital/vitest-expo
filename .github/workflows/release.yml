@@ -1,5 +1,5 @@
 # Publishes a tagged version to npm with provenance, after the same gates CI
-# runs. Trigger: push a tag (v57.0.1) or run the workflow manually.
+# runs. Trigger: push a tag (v58.0.1) or run the workflow manually.
 name: Release
 
 on:
@@ -36,8 +36,6 @@ jobs:
           fi
       - name: Unit tests
         run: npm test
-      - name: Vendored specs match the installed jest-expo
-        run: npm run check-spec-drift
       - name: Build
         run: npm run build
       - name: Conformance — Vitest (iOS)

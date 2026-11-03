@@ -41,17 +41,16 @@ export function checkDependencies(root: string): DependencyReport {
   need('vitest-native');
   need('@testing-library/react-native');
 
-  // Vitest 4 is required (the underlying engine's floor). An installed 3.x
-  // only surfaces as a package-manager peer warning that is easy to miss —
-  // flag it loudly here instead.
+  // Vitest 5 is required. An older install only surfaces as a package-manager
+  // peer warning that is easy to miss — flag it loudly here instead.
   const vitestVersion = installedVersion(require, 'vitest') ?? declared.vitest;
   if (!vitestVersion && !('vitest' in declared)) {
-    missing.push('vitest@^4');
+    missing.push('vitest@^5');
   } else {
     const vitestMajor = Number(major(vitestVersion ?? ''));
-    if (Number.isFinite(vitestMajor) && vitestMajor < 4) {
+    if (Number.isFinite(vitestMajor) && vitestMajor < 5) {
       notes.push(
-        `vitest ${vitestVersion} is installed, but vitest-expo requires Vitest 4 — upgrade with: npm install -D vitest@^4`
+        `vitest ${vitestVersion} is installed, but vitest-expo requires Vitest 5 — upgrade with: npm install -D vitest@^5`
       );
     } else {
       present.push('vitest');

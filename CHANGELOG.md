@@ -1,5 +1,19 @@
 # vitest-expo
 
+## 58.0.0
+
+Expo SDK 58, and a package that is half the size because the engine underneath now carries what this layer used to.
+
+- Verified against Expo SDK 58 and SDK 57. The major names the newer one, as before; the compatibility table in the README lists both, and the previous SDK is checked on every change through a scratch app installed from the packed release.
+- Requires vitest-native 0.14, Vitest 5 and Node 22.13 or newer (Node 24 from 24.3). Vitest 4 and Node 20 are no longer supported: the engine's matcher types are written against Vitest 5, and Node 20 reached end of life.
+- The Expo native-module layer moved into the engine. vitest-native 0.14 carries Expo's module data per SDK, serves the mocks packages ship themselves, models uninstalled modules as absent, registers assets the way Metro does, resolves `jest.requireActual` through the project's aliases and compiles TypeScript-source packages on its own. The vendored module specs, the spec overlay, the stub proxies, the asset-registry stand-in, the expo-symbols shadow, the Node resolution fallbacks and the `vitest-expo/esm-loader` entry are gone with it, as are the `import-jest-expo-mocks` and `check-spec-drift` scripts. What this package adds on top is unchanged: the app config in `Constants.expoConfig`, `vitest-expo/router`, the snapshot serializer, the web platform, the console filters and the CLI.
+- Assets are registered ids, as in an app built with Metro. A test that handed `Font.loadAsync()` or `useFonts()` a made-up numeric id gets the error a device would give; a bundled `require('./font.ttf')` or a `{ uri }` source loads.
+- `vitest-expo/router` works on SDK 57 and 58: the two keep the current route in different internals, and the one the installed expo-router has is picked at load time. Its matchers are typed with Vitest 5's assertion generics.
+- `EXPO_PROJECT_ROOT` is no longer set in the test environment; jest-expo does not set it either. It is a build-time input of babel-preset-expo.
+- The SDK check at config time warns when the project's Expo is outside the verified range instead of when it differs from the package major.
+- `vitest-expo migrate` and `init` ask for Vitest 5.
+- Example app and jest-expo reference on SDK 58: React Native 0.88, React 19.3, expo-router 58, Jest 30.
+
 ## 57.1.0
 
 Quieter output, two options to keep it that way, and the engine's own fixes taken over.
