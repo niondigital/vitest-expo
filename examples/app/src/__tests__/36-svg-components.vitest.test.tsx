@@ -12,11 +12,11 @@ describe('svg components', () => {
 	it('renders an aliased .svg import as a host element named after the file', async () => {
 		await render(<Aliased testID="icon" width={10} />);
 		const icon = screen.getByTestId('icon');
-		expect(icon.type).toBe('sample');
+		expect(icon.type).toBe('sample.svg');
 		expect(icon.props.width).toBe(10);
 	});
 
 	it('resolves a relative import the same way', () => {
-		expect(Relative).toBe('sample');
+		expect(Relative).toBe('sample.svg');
 	});
 });

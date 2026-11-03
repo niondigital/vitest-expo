@@ -12,10 +12,11 @@ const VIRTUAL_PREFIX = '\0vitest-expo:svg-component:';
  * `.svg` as an asset, the way Metro does without the transformer, so the import
  * is a number and React refuses to render it. When the transformer is
  * installed, an `.svg` import from app code resolves to a stand-in component
- * instead: a host element named after the file, which is what the Jest mocks
- * these projects carry render too, so `testID` and friends come through and a
- * snapshot reads `<icon testID="…" />`. Files under node_modules keep the
- * engine's asset handling.
+ * instead: a host element named after the file, extension included, which is
+ * what the previous asset stand-in and the Jest mocks these projects carry
+ * render too, so `testID` and friends come through and a snapshot reads
+ * `<icon.svg testID="…" />`. Files under node_modules keep the engine's asset
+ * handling.
  */
 export function svgComponentsPlugin(root: string): Plugin | null {
   if (!hasSvgTransformer(root)) return null;
@@ -31,7 +32,7 @@ export function svgComponentsPlugin(root: string): Plugin | null {
     },
     load(id) {
       if (!id.startsWith(VIRTUAL_PREFIX)) return null;
-      const name = path.basename(id.slice(VIRTUAL_PREFIX.length), '.svg');
+      const name = path.basename(id.slice(VIRTUAL_PREFIX.length));
       return `export default ${JSON.stringify(name)};\n`;
     },
   };
