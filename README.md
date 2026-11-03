@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/niondigital/vitest-expo/actions/workflows/ci.yml/badge.svg)](https://github.com/niondigital/vitest-expo/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/vitest-expo)](https://www.npmjs.com/package/vitest-expo)
-[![Expo SDK 57–58](https://img.shields.io/badge/Expo%20SDK-57%E2%80%9358-000)](https://docs.expo.dev/)
+[![Expo SDK 58](https://img.shields.io/badge/Expo%20SDK-58-000)](https://docs.expo.dev/)
 [![license MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 **Test your Expo app with Vitest** — iOS, Android and Web. Real React Native, the testing-library API you know, no test-config maintenance.
@@ -160,11 +160,11 @@ One entry covers the Vitest globals and the RNTL matchers (`toBeOnTheScreen`, �
 
 ## Compatibility
 
-The major version names the newest Expo SDK the release is verified against, the way jest-expo numbers its releases. A release stays verified against the previous SDK for as long as the engine underneath supports both, so `vitest-expo@58` covers SDK 58 and SDK 57.
+The major version tracks the Expo SDK it is verified against, the way jest-expo does it — `vitest-expo@58` is for SDK 58.
 
 | vitest-expo | Expo SDK | React Native | Vitest | vitest-native | RNTL |
 |---|---|---|---|---|---|
-| 58.x | 57 · 58 | 0.86 · 0.88 | 5 | 0.14 | 13 · 14 |
+| 58.x | 58 | 0.88 | 5 | 0.14 | 13 · 14 |
 | 57.x | 57 | 0.86 | 4 | 0.13 | 13 · 14 |
 
 Node 22.13 or newer, or Node 24.3 or newer. Install layouts are verified against a packed release — npm, pnpm and yarn (`nodeLinker: node-modules`) on every CI run, bun with the same script by hand. Yarn Plug'n'Play is not supported.
@@ -196,7 +196,7 @@ Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vit
 <summary><strong>Known limitations</strong></summary>
 
 - On web, `@testing-library/react-native` is not usable — its text-in-`<Text>` invariant fires on DOM hosts. That is runner-independent (`jest-expo/web` fails identically); render web tests via the standalone renderer (`test-renderer`) or React Testing Library
-- `vitest-expo/router` uses deep imports into `expo-router/build/*` (no `exports` field there); verified per Expo SDK — currently SDK 57 and 58
+- `vitest-expo/router` uses deep imports into `expo-router/build/*` (no `exports` field there); verified per Expo SDK — currently SDK 58
 - Jest auto-applies root `__mocks__` for node_modules packages without a call; Vitest needs the explicit `jest.mock('pkg')`
 - Class mocks constructed with `new` need a `function` implementation — arrow implementations are not constructable
 - `jest.requireMock` does not return the live factory instance; import the mocked module instead

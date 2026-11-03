@@ -31,15 +31,12 @@ A change to what the package *ships* — its exports, dependencies or peers — 
 
 ```bash
 npm pack --workspaces=false --pack-destination /tmp
-node scripts/verify-install-layout.mjs npm /tmp            # also: pnpm, yarn, bun
-node scripts/verify-install-layout.mjs npm /tmp --sdk 57   # the previous Expo SDK
+node scripts/verify-install-layout.mjs npm /tmp     # also: pnpm, yarn, bun
 ```
-
-The example app runs the newest verified Expo SDK. The previous SDK is covered by the scratch app above, which CI runs on every change.
 
 ## Releasing
 
-The major version names the newest Expo SDK the release is verified against (`58.x` → SDK 58, with the previous SDK kept in the README's table while the engine supports both); minor and patch follow the usual semantics within it.
+The major version tracks the Expo SDK the release is verified against (`58.x` → SDK 58); minor and patch follow the usual semantics within it.
 
 1. Update `CHANGELOG.md` and the version in `package.json`.
 2. Tag the commit `v<version>` and push the tag — the release workflow runs the unit tests and the conformance suites, then publishes to npm with provenance.

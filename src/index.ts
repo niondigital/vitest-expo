@@ -297,14 +297,11 @@ function mergeTransform(
 
 
 /**
- * The Expo SDKs this release is verified against. The package major names the
- * newest of them, the way jest-expo numbers its releases, and the engine
- * underneath carries a native-module table for each. Not expressed as a peer
- * dependency on expo: that would make the engine classify vitest-expo itself
- * as a React Native package and load it through the Node-side pipeline.
+ * The package major tracks the Expo SDK it is verified against (58.x is for
+ * SDK 58), so a mismatch is worth one line at config time. Not expressed as a
+ * peer dependency on expo: that would make the engine classify vitest-expo
+ * itself as a React Native package and load it through the Node-side pipeline.
  */
-const SUPPORTED_EXPO_SDKS = [57, 58];
-
 let sdkChecked = false;
 function warnOnSdkMismatch(root: string): void {
   if (sdkChecked) return;
@@ -312,11 +309,11 @@ function warnOnSdkMismatch(root: string): void {
   try {
     const own = createRequire(import.meta.url)('../package.json').version as string;
     const expo = createRequire(path.join(root, 'package.json'))('expo/package.json').version as string;
-    const sdk = Number(/^(\d+)\./.exec(expo)?.[1]);
-    if (Number.isFinite(sdk) && !SUPPORTED_EXPO_SDKS.includes(sdk)) {
+    const major = (version: string) => /^(\d+)\./.exec(version)?.[1];
+    if (major(own) && major(expo) && major(own) !== major(expo)) {
       console.warn(
-        `[vitest-expo] vitest-expo ${own} is verified against Expo SDK ${SUPPORTED_EXPO_SDKS.join(' and ')}, ` +
-          `but the project runs Expo ${expo} — a release for that SDK may be available.`
+        `[vitest-expo] this is vitest-expo ${own} (Expo SDK ${major(own)}), but the project runs Expo ${expo} — ` +
+          `install vitest-expo@${major(expo)} for a matching module surface.`
       );
     }
   } catch (error) {

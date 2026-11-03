@@ -69,17 +69,12 @@ jobs:
         run: npm run test:jest --workspace app
 
   package-managers:
-    name: Install layout (${{ matrix.manager }}, Expo SDK ${{ matrix.sdk }})
+    name: Install layout (${{ matrix.manager }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         manager: [npm, pnpm, yarn]
-        sdk: [58]
-        include:
-          # The previous SDK, verified through the same scratch app.
-          - manager: npm
-            sdk: 57
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -93,7 +88,7 @@ jobs:
           npm run build
           npm pack --workspaces=false --pack-destination /tmp
       - name: Install the tarball into a scratch Expo app and run one suite
-        run: node scripts/verify-install-layout.mjs "${{ matrix.manager }}" /tmp --sdk "${{ matrix.sdk }}"
+        run: node scripts/verify-install-layout.mjs "${{ matrix.manager }}" /tmp
 
   pack:
     name: Publishable artifact

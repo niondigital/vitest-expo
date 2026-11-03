@@ -12,15 +12,16 @@ import React from 'react';
 import { vi, expect } from 'vitest';
 import * as rntl from '@testing-library/react-native';
 // Runner-agnostic internals reused from expo-router (no `exports` field, deep
-// imports are verified per supported SDK).
+// imports are verified per Expo SDK).
 import { ExpoRoot } from 'expo-router/build/ExpoRoot';
+import { getRouteInfoFromState } from 'expo-router/build/global-state/getRouteInfoFromState';
+import { navigationRef } from 'expo-router/build/global-state/navigationRef';
 import { router } from 'expo-router/build/imperative-api';
 import {
   getMockConfig,
   getMockContext,
   type MockContextConfig,
 } from 'expo-router/build/testing-library/mock-config';
-import { routeInfoSource } from './route-info';
 
 export { getMockConfig, getMockContext };
 export type { MockContextConfig };
@@ -40,31 +41,34 @@ export type RenderRouterOptions = Parameters<typeof rntl.render>[1] & {
 
 type RenderResult = Awaited<ReturnType<typeof rntl.render>>;
 
+type SearchParams = ReturnType<typeof getRouteInfoFromState>['params'];
+
 export interface RouterRenderResult extends RenderResult {
   getPathname(): string;
   getPathnameWithParams(): string;
   getSegments(): string[];
-  getSearchParams(): Record<string, string | string[]>;
+  getSearchParams(): SearchParams;
   getRouterState(): unknown;
 }
 
-const routeInfo = await routeInfoSource();
+// The current route, read the way expo-router's own testing library reads it.
+const currentRoute = () => getRouteInfoFromState(navigationRef.getRootState());
 
 const routerInfoHelpers = {
   getPathname(): string {
-    return routeInfo.current().pathname;
+    return currentRoute().pathname;
   },
   getSegments(): string[] {
-    return routeInfo.current().segments;
+    return currentRoute().segments;
   },
-  getSearchParams(): Record<string, string | string[]> {
-    return routeInfo.current().params;
+  getSearchParams(): SearchParams {
+    return currentRoute().params;
   },
   getPathnameWithParams(): string {
-    return routeInfo.current().pathnameWithParams;
+    return currentRoute().pathnameWithParams;
   },
   getRouterState(): unknown {
-    return routeInfo.state();
+    return navigationRef.getRootState();
   },
 };
 
