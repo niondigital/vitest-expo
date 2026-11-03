@@ -141,7 +141,8 @@ function ownPeerRange(name: string): string {
 /**
  * Whether a version (or a declared range's base) is below the floor of a
  * range. A prerelease floor (`^0.14.0-rc.11`) admits the same base only from
- * that prerelease on, the way npm reads it.
+ * that prerelease on, the way npm reads it; that branch matters while the
+ * engine peer names a release candidate and can go with it.
  */
 function isBelow(version: string, range: string): boolean {
   const floor = numeric(range);

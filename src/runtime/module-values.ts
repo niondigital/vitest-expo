@@ -22,7 +22,9 @@ export function applyModuleValues(): void {
     const module = modules[name];
     if (!module) continue;
     for (const [member, value] of Object.entries(members)) {
-      module[member] = vi.fn(async () => value);
+      // A fresh copy per call: a test that mutates the result must not see
+      // its change in the next call.
+      module[member] = vi.fn(async () => structuredClone(value));
     }
   }
 }

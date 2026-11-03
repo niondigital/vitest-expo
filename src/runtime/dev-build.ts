@@ -22,7 +22,9 @@ export function installDevBuildModel(): void {
   // The engine consults this resolver on the first access of each module, from
   // both the `get` and `has` traps of `globalThis.expo.modules`. Wrapping it
   // here, before any Expo package loads, keeps the engine's own layers intact
-  // for everything else.
+  // for everything else. The global is the engine's own, not a documented
+  // option; an option for absent modules is the proper home, and a conformance
+  // test pins this until there is one.
   const resolver = g.__vitest_native_expo_modules;
   if (resolver && typeof resolver.present === 'function' && !resolver.__vitestExpoAbsent) {
     const present = resolver.present.bind(resolver);
