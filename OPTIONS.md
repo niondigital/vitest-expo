@@ -48,7 +48,7 @@ node_modules/react-native-flash-message/src/FlashMessage.js
 vitestExpo({ transformPackages: ['react-native-flash-message'] })
 ```
 
-This is the equivalent of adding a package to Jest's `transformIgnorePatterns` allowlist, and it applies on both module graphs.
+This is the equivalent of adding a package to Jest's `transformIgnorePatterns` allowlist. The package is handed to the engine's Node-side transform, which compiles it and its dependencies the way it compiles React Native itself.
 
 ## acknowledgedDuplicates
 

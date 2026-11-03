@@ -7,7 +7,7 @@ import {
   jestCompatSetup,
   jestMockTransform,
 } from 'vitest-native/jest-compat';
-import { transformWithEsbuild, type Plugin } from 'vite';
+import { type Plugin } from 'vite';
 import { syntaxCompatPlugin } from './syntax-compat';
 import { consoleNoiseFilter, type ConsoleNoiseOptions } from './runtime/console-noise';
 import { debug } from './runtime/debug';
@@ -24,7 +24,7 @@ export interface VitestExpoOptions {
    */
   platform?: 'ios' | 'android' | 'web';
   /** Escape hatch: options forwarded verbatim to vitest-native's reactNative() plugin. */
-  reactNative?: Omit<ReactNativeOptions, 'platform'>;
+  reactNative?: Omit<ReactNativeOptions, 'platform' | 'engine'>;
   /**
    * Jest compatibility layer (default: true). Hoists `jest.mock(...)` calls,
    * provides a `jest` global backed by `vi`, and shims Jest-only modules —
@@ -35,7 +35,7 @@ export interface VitestExpoOptions {
    * node_modules packages that ship untranspiled JSX/Flow in .js files but are
    * not auto-detected (e.g. they declare react-native only as a peer
    * dependency). The equivalent of extending Jest's transformIgnorePatterns
-   * allowlist — applied on both module graphs.
+   * allowlist — handed to the engine's Node-side transform.
    */
   transformPackages?: string[];
   /**
@@ -70,12 +70,13 @@ export interface VitestExpoOptions {
 /**
  * Vite plugin preset that makes an Expo app testable under Vitest.
  *
- * Layering: vitest-native carries the React Native core (transform pipeline,
- * native-module boundary, platform extensions, library presets). This plugin adds
- * the Expo layer on top — environment parity with babel-preset-expo, the
- * vitest-expo runtime setup (jest-expo-style snapshot serializer), and inlining
- * of vitest-expo itself so its React/RN-importing modules run inside the Vite
- * module graph instead of being externalized to Node.
+ * Layering: vitest-native carries the React Native core and, since 0.14, the
+ * Expo native-module boundary (transform pipeline, platform extensions, library
+ * presets, Expo's module data). This plugin adds what sits above that — the
+ * app config in the native manifest, the router import mode babel-preset-expo
+ * would inline, the jest-expo-style snapshot serializer, the console filters —
+ * and inlines vitest-expo itself so its React-importing modules run inside the
+ * Vite module graph instead of being externalized to Node.
  */
 export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   const platform = options.platform ?? 'ios';
@@ -91,33 +92,15 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
   }
 
   const rn = reactNative({
-    // Everything vitest-expo layers on (globalThis.expo, real Expo package JS,
-    // the native-module registry) assumes real React Native — the pure-JS mock
-    // engine silently invalidates all of it, so never auto-degrade to it.
-    engine: 'native',
     ...options.reactNative,
     platform,
-    // Metro treats .xml as an asset (Android vector drawables — expo-router
-    // ships arrow_right.xml etc.); vitest-native's default list lacks it.
-    assetExts: ['.xml', ...(options.reactNative?.assetExts ?? [])],
-    transform: mergeTransform(
-      [...transformPackages, ...UNSHADOWED_EXPO_PACKAGES],
-      options.reactNative?.transform
-    ),
-    presets: withoutExpoPreset(options.reactNative?.presets),
+    // Everything vitest-expo layers on (the app config in the native manifest,
+    // the router port, the real Expo package JS the engine runs) assumes real
+    // React Native — the pure-JS mock engine silently invalidates all of it,
+    // so never auto-degrade to it.
+    engine: 'native',
+    transform: mergeTransform(transformPackages, options.reactNative?.transform),
   });
-
-  // Vite-graph counterpart of the `transform` allowlist: packages shipping
-  // JSX in .js would fail Vite's import analysis.
-  const jsxInJsPlugin: Plugin = {
-    name: 'vitest-expo:jsx-in-js',
-    enforce: 'pre',
-    async transform(code, id) {
-      if (transformPackages.length === 0 || !id.endsWith('.js')) return null;
-      if (!transformPackages.some((pkg) => id.includes(`/node_modules/${pkg}/`))) return null;
-      return transformWithEsbuild(code, id, { loader: 'jsx', jsx: 'automatic' });
-    },
-  };
 
   const expoPlugin: Plugin = {
     name: 'vitest-expo',
@@ -132,24 +115,6 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
       // AFTER user entries by Vite's config merge, so reorder by mutation:
       // vitest-native's injected setup (already merged at this point, our
       // plugin runs after it) → jest-compat → vitest-expo → user setups.
-      // The engine expands inline entries to their transitive dependency
-      // closure and feeds the result to its Node-side RN transform (merged into
-      // test.env before this hook runs). Inlining 'expo' pulls its CLI/build
-      // tooling (@expo/cli → metro → @babel/runtime …) into that list, and
-      // RN-transforming plain-JS tooling breaks. Keep only packages that are
-      // actually React Native territory.
-      const mergedEnv = (userConfig as any).test?.env;
-      if (mergedEnv?.VITEST_NATIVE_TRANSFORM) {
-        try {
-          const list: string[] = JSON.parse(mergedEnv.VITEST_NATIVE_TRANSFORM);
-          mergedEnv.VITEST_NATIVE_TRANSFORM = JSON.stringify(
-            list.filter((pkg) => isReactNativeTerritory(pkg, root, transformPackages))
-          );
-        } catch {
-          // leave the engine's value untouched when it isn't parseable
-        }
-      }
-
       const existing = normalizeSetupFiles((userConfig as any).test?.setupFiles);
       const engine = existing.filter((f) => f.includes('vitest-native'));
       const project = existing.filter((f) => !f.includes('vitest-native'));
@@ -171,69 +136,22 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
           onConsoleLog: consoleNoiseFilter((userConfig as any).test?.onConsoleLog, noise),
           server: {
             deps: {
-              // vitest-expo itself imports expo-router internals, which import
-              // react-native — that only resolves inside the Vite pipeline.
-              // Kept deliberately minimal: the engine expands inline entries to
-              // their transitive dependency closure, and a broad entry (like
-              // 'expo') drags build tooling into the RN transform set.
-              inline: [
-                'vitest-expo',
-                'expo-router',
-                'expo-modules-core',
-                'expo',
-                'expo-asset',
-                'expo-image',
-                'expo-symbols',
-              ],
-              // transformPackages run through the engine's Node-side Babel
-              // pipeline (JSX/Flow handled there); keeping them external stops
-              // Vite from pulling their CJS `require('react-native')` graph in.
-              external: transformPackages,
+              // vitest-expo itself imports React and expo-router internals,
+              // which only resolve inside the Vite pipeline. Nothing else: the
+              // Expo and React Native packages belong to the engine, which
+              // loads them through Node and refuses to share them with Vite.
+              inline: ['vitest-expo'],
             },
           },
           env: {
-            // babel-preset-expo inlines process.env.EXPO_OS at app build time;
-            // in tests the transform runs without it, so provide it at runtime.
-            EXPO_OS: platform,
             // expo-router resolves routes synchronously in tests (same value
             // renderRouter forces imperatively).
             EXPO_ROUTER_IMPORT_MODE: 'sync',
-            // Also inlined by babel-preset-expo's expo-router plugin. The two
-            // router-root variables it derives from it (EXPO_ROUTER_APP_ROOT,
-            // EXPO_ROUTER_ABS_APP_ROOT) stay unset — the transform skips them
-            // under NODE_ENV=test as well.
-            EXPO_PROJECT_ROOT: root,
             // Real app config for Constants.expoConfig (see modules/expo-constants).
             ...appConfigEnv(root),
-            // Native-module mocks shipped by Expo packages themselves
-            // (see runtime/package-native-mocks).
-            VITEST_EXPO_PACKAGE_MOCKS: JSON.stringify(findPackageNativeMocks(root)),
           },
         },
       };
-    },
-    configResolved(config) {
-      // jest-compat's requireActual resolves through Node and knows nothing
-      // about Vite aliases, while `jest.requireActual('@/…')` is a common
-      // pattern in real suites. Hand the resolved alias table to the runtime
-      // (setup.ts wraps requireActual with it); workers inherit process.env.
-      const serialized = (config.resolve?.alias ?? [])
-        .map((entry: { find: string | RegExp; replacement: string }) => {
-          if (typeof entry.replacement !== 'string') return null;
-          if (typeof entry.find === 'string') {
-            return { find: entry.find, replacement: entry.replacement };
-          }
-          if (entry.find instanceof RegExp) {
-            return {
-              regex: entry.find.source,
-              flags: entry.find.flags,
-              replacement: entry.replacement,
-            };
-          }
-          return null;
-        })
-        .filter(Boolean);
-      process.env.VITEST_EXPO_ALIASES = JSON.stringify(serialized);
     },
   };
 
@@ -241,7 +159,6 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     rn,
     ...(jestCompat ? [jestMockTransform()] : []),
     syntaxCompatPlugin(),
-    jsxInJsPlugin,
     expoPlugin,
   ].flat();
 }
@@ -334,7 +251,6 @@ function webPlugins(jestCompat: boolean, noise: ConsoleNoiseOptions): Plugin[] {
           env: {
             EXPO_OS: 'web',
             EXPO_ROUTER_IMPORT_MODE: 'sync',
-            EXPO_PROJECT_ROOT: root,
             ...appConfigEnv(root, { inlineManifest: true }),
           },
         },
@@ -361,100 +277,8 @@ function mergeTransform(
 }
 
 /**
- * Expo packages that run their REAL JavaScript in tests instead of a
- * stand-in module. Each is plain JavaScript over a native-module boundary that
- * this preset already mocks from data specs, so the package's own behavior —
- * font loading states, asset metadata, splash-screen call semantics, manifest
- * derivation — is reproduced rather than re-implemented, exactly as Jest's
- * Expo preset does it.
- *
- * They are transformed on the Node side because their published `build/` files
- * are ES modules that reach expo-modules-core through static imports; running
- * them through the React Native Babel pipeline resolves that import against
- * the mocked module boundary.
- */
-const UNSHADOWED_EXPO_PACKAGES = [
-  'expo-constants',
-  'expo-font',
-  'expo-asset',
-  'expo-splash-screen',
-  'expo-linking',
-  'expo-status-bar',
-];
-
-/**
- * Turns off the bundled `expo` library preset so the packages above are served
- * by their own code (see UNSHADOWED_EXPO_PACKAGES).
- *
- * The array form of `presets` replaces detection entirely and is the caller's
- * explicit choice, so it is passed through untouched.
- */
-function withoutExpoPreset(
-  presets: ReactNativeOptions['presets']
-): ReactNativeOptions['presets'] {
-  if (Array.isArray(presets)) return presets;
-  return { ...presets, expo: false };
-}
-
-/**
- * Locates the native-module mocks Expo packages ship for test runners: a
- * `mocks/` directory whose files are named after the native modules they stand
- * in for (`expo-font/mocks/ExpoFontLoader.ts`). They are the package author's
- * own description of how the native side behaves in a test — richer and more
- * current than any generic stub — so the runtime prefers them over generated
- * ones (see runtime/package-native-mocks).
- *
- * Resolved here, at config time, because a per-test-file directory scan would
- * be paid on every file.
- */
-function findPackageNativeMocks(root: string): Record<string, string> {
-  const found: Record<string, string> = {};
-  const seenPackages = new Set<string>();
-
-  const collect = (packageDir: string) => {
-    const mocksDir = path.join(packageDir, 'mocks');
-    let entries: string[];
-    try {
-      entries = fs.readdirSync(mocksDir);
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const moduleName = entry.replace(/\.[cm]?[jt]sx?$/, '');
-      if (moduleName === entry || moduleName in found) continue;
-      found[moduleName] = path.join(mocksDir, entry);
-    }
-  };
-
-  for (let dir = path.resolve(root); ; dir = path.dirname(dir)) {
-    const nodeModules = path.join(dir, 'node_modules');
-    let packages: string[];
-    try {
-      packages = fs.readdirSync(nodeModules);
-    } catch {
-      packages = [];
-    }
-    for (const name of packages) {
-      // Only Expo packages ship this convention; skipping the rest keeps the
-      // scan to a handful of directory reads.
-      if (!name.startsWith('expo')) continue;
-      if (seenPackages.has(name)) continue;
-      seenPackages.add(name);
-      collect(path.join(nodeModules, name));
-    }
-    if (path.dirname(dir) === dir) break;
-  }
-  return found;
-}
-
-/**
- * Whether a package belongs to the React Native transform set: RN/Expo by
- * name, explicitly requested, or declaring react-native / expo-modules-core
- * as a (peer) dependency.
- */
-/**
- * The package major tracks the Expo SDK it is verified against (57.x is for
- * SDK 57), so a mismatch is worth one line at config time. Not expressed as a
+ * The package major tracks the Expo SDK it is verified against (58.x is for
+ * SDK 58), so a mismatch is worth one line at config time. Not expressed as a
  * peer dependency on expo: that would make the engine classify vitest-expo
  * itself as a React Native package and load it through the Node-side pipeline.
  */
@@ -474,22 +298,6 @@ function warnOnSdkMismatch(root: string): void {
     }
   } catch (error) {
     debug('sdk-check', 'could not compare the Expo SDK version', error);
-  }
-}
-
-function isReactNativeTerritory(pkg: string, root: string, requested: string[]): boolean {
-  if (requested.includes(pkg)) return true;
-  if (pkg === 'react-native' || pkg.startsWith('react-native-')) return true;
-  if (pkg === 'expo' || pkg.startsWith('expo-') || pkg === 'vitest-expo') return true;
-  if (pkg.startsWith('@react-native/') || pkg.startsWith('@react-native-')) return true;
-  if (pkg.startsWith('@react-navigation/')) return true;
-  try {
-    const require = createRequire(path.join(root, 'package.json'));
-    const manifest = require(`${pkg}/package.json`);
-    const declared = { ...manifest.dependencies, ...manifest.peerDependencies };
-    return 'react-native' in declared || 'expo-modules-core' in declared || 'expo' in declared;
-  } catch {
-    return false;
   }
 }
 

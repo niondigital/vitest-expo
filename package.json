@@ -1,7 +1,7 @@
 {
   "name": "vitest-expo",
-  "version": "57.1.0",
-  "description": "Test Expo apps with Vitest \u2014 a drop-in replacement for jest-expo, built on vitest-native.",
+  "version": "58.0.0",
+  "description": "Test Expo apps with Vitest — a drop-in replacement for jest-expo, built on vitest-native.",
   "license": "MIT",
   "author": "Sebastian Weyrauch <sw@nion-digital.com>",
   "bugs": "https://github.com/niondigital/vitest-expo/issues",
@@ -15,7 +15,7 @@
   ],
   "type": "module",
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.13 <23 || >=24.3"
   },
   "exports": {
     ".": {
@@ -40,7 +40,6 @@
       "types": "./dist/helpers.d.ts",
       "default": "./dist/helpers.js"
     },
-    "./esm-loader": "./dist/esm-loader.js",
     "./setup-web": {
       "types": "./dist/setup-web.d.ts",
       "default": "./dist/setup-web.js"
@@ -63,24 +62,22 @@
   ],
   "scripts": {
     "build": "tsup",
-    "import-jest-expo-mocks": "node scripts/import-jest-expo-mocks.mjs",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:conformance": "npm run build && npm run test --workspace app",
-    "check-spec-drift": "node scripts/check-spec-drift.mjs",
     "pack:local": "npm run build && npm pack --workspaces=false --pack-destination /tmp"
   },
   "dependencies": {
-    "@oxc-project/runtime": "^0.144.0",
+    "@oxc-project/runtime": ">=0.144.0 <1",
     "pretty-format": "^30.0.0"
   },
   "peerDependencies": {
     "@testing-library/react-native": ">=12 <15",
     "expo-router": "*",
     "react": ">=18",
-    "vite": ">=6 <9",
-    "vitest": ">=4 <6",
-    "vitest-native": ">=0.13 <0.14"
+    "vite": ">=8 <9",
+    "vitest": ">=5 <6",
+    "vitest-native": "^0.14.0-rc.11"
   },
   "peerDependenciesMeta": {
     "expo-router": {
@@ -88,11 +85,12 @@
     }
   },
   "devDependencies": {
-    "jsdom": "^29.0.0",
-    "react": "19.2.3",
+    "jsdom": "^30.0.0",
+    "react": "19.3.0",
     "tsup": "^8.5.1",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^5.1.0",
+    "vitest-native": "0.14.0-rc.11"
   },
   "workspaces": [
     "examples/app"

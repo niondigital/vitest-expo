@@ -17,6 +17,7 @@ export default defineConfig({
 	},
 	test: {
 		globals: true,
+		silent: false,
 		setupFiles: ['./test-setup.mocks.ts'],
 		
 		include: ['src/__tests__/06-platform.test.ts', 'src/__tests__/21-web-platform.test.tsx'],

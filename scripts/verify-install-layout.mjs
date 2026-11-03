@@ -38,21 +38,25 @@ const files = {
     private: true,
     scripts: { test: 'vitest run' },
     dependencies: {
-      expo: '~57.0.13',
-      'expo-constants': '~57.0.11',
-      react: '19.2.3',
-      'react-native': '0.86.2',
+      expo: '~58.0.22',
+      'expo-constants': '~58.0.14',
+      react: '19.3.0',
+      'react-native': '0.88.1',
     },
     devDependencies: {
       '@babel/core': '^7.25.0',
       '@react-native/babel-preset': '*',
-      '@testing-library/react-native': '^14.0.1',
+      '@testing-library/react-native': '^14.1.0',
       // RNTL 14's renderer peer. npm installs peers on its own; yarn does not,
       // so the scaffold declares it the way a real project has to.
       'test-renderer': '^1.0.0',
-      vitest: '^4',
+      // Vitest's own peer, for the same reason.
+      vite: '^8',
+      vitest: '^5',
       'vitest-expo': `file:${tarball}`,
-      'vitest-native': '*',
+      // The engine range the packed vitest-expo declares as its peer.
+      'vitest-native': JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+        .peerDependencies['vitest-native'],
     },
   },
   'app.json': { expo: { name: 'layout-check', slug: 'layout-check', scheme: 'layoutcheck' } },

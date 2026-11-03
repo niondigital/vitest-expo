@@ -12,6 +12,9 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // Errors React reports through console.error on a passing test are the
+    // kind of regression this suite exists to catch; keep them visible.
+    silent: false,
     setupFiles: ['./test-setup.mocks.ts'],
     include: ['src/__tests__/**/*.test.{ts,tsx}'],
     // 07 exercises expo-router's own jest-only testing-library (documented gap);

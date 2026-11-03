@@ -1,20 +1,39 @@
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import * as vite from 'vite';
-import { type Plugin } from 'vite';
+import { transformWithOxc, type Plugin } from 'vite';
 import { debug } from './runtime/debug';
 
+/** JSX in a .js file, through Vite's own transformer (Oxc on Vite 8). */
+function transformJsx(code: string, file: string, map?: object) {
+  return transformWithOxc(code, file, { lang: 'jsx', jsx: { runtime: 'automatic' } }, map);
+}
+
 /**
- * Babel-only syntax that babel-preset-expo accepts in app code but esbuild
- * does not: the `export default from` proposal and Flow-annotated .js files.
- * Both are handled here so that source written for a Metro/jest-expo pipeline
- * transforms without edits. Applies to app code only — node_modules either
- * ship compiled output or are handled by the engine's React Native transform.
+ * Babel-only syntax that babel-preset-expo accepts in app code but Vite's
+ * transformer does not: the `export default from` proposal and Flow-annotated
+ * .js files. Both are handled here so that source written for a Metro/jest-expo
+ * pipeline transforms without edits. Applies to app code only — node_modules
+ * either ship compiled output or are handled by the engine's React Native
+ * transform.
  */
 export function syntaxCompatPlugin(): Plugin {
   return {
     name: 'vitest-expo:syntax-compat',
     enforce: 'pre',
+    // Vite's decorator lowering emits imports of its helper package, resolved
+    // from the app file that used the decorator. The helper is a dependency of
+    // this package, not of the app, so it is answered from here with an
+    // absolute path — which also holds under install layouts that do not
+    // hoist it into the app's reach.
+    resolveId(source) {
+      if (!source.startsWith('@oxc-project/runtime/')) return null;
+      try {
+        return createRequire(import.meta.url).resolve(source);
+      } catch (error) {
+        debug('syntax-compat', `could not resolve ${source}`, error);
+        return null;
+      }
+    },
     async transform(code, id) {
       const file = cleanId(id);
       if (file.includes('/node_modules/') || !/\.[jt]sx?$/.test(file)) return null;
@@ -35,23 +54,10 @@ export function syntaxCompatPlugin(): Plugin {
 
       if (!result) return null;
 
-      // Flow files may still contain JSX in .js — esbuild's default 'js'
-      // loader would reject it, so finish with an explicit jsx pass (mirrors
-      // the jsx-in-js handling for allowlisted packages).
+      // Flow files may still contain JSX in .js, which the default 'js'
+      // loader rejects, so finish with an explicit jsx pass.
       if (file.endsWith('.js') || file.endsWith('.jsx')) {
-        // Rolldown-based Vite deprecates transformWithEsbuild; prefer the Oxc
-        // equivalent where it exists (same jsx handling, different options
-        // shape), fall back for esbuild-based Vite 6.
-        const oxc = (vite as Record<string, any>).transformWithOxc;
-        if (typeof oxc === 'function') {
-          return oxc(result.code, file, { lang: 'jsx', jsx: { runtime: 'automatic' } }, result.map ?? undefined);
-        }
-        return vite.transformWithEsbuild(
-          result.code,
-          file,
-          { loader: 'jsx', jsx: 'automatic' },
-          result.map ?? undefined
-        );
+        return transformJsx(result.code, file, result.map ?? undefined);
       }
       return result;
     },

@@ -34,19 +34,12 @@ npm pack --workspaces=false --pack-destination /tmp
 node scripts/verify-install-layout.mjs npm /tmp     # also: pnpm, yarn, bun
 ```
 
-After bumping jest-expo, regenerate the vendored module specs; CI fails otherwise:
-
-```bash
-npm run import-jest-expo-mocks
-npm run check-spec-drift
-```
-
 ## Releasing
 
-The major version tracks the Expo SDK the release is verified against (`57.x` → SDK 57); minor and patch follow the usual semantics within it.
+The major version tracks the Expo SDK the release is verified against (`58.x` → SDK 58); minor and patch follow the usual semantics within it.
 
 1. Update `CHANGELOG.md` and the version in `package.json`.
-2. Tag the commit `v<version>` and push the tag — the release workflow runs the unit tests, the spec-drift gate and the conformance suites, then publishes to npm with provenance.
+2. Tag the commit `v<version>` and push the tag — the release workflow runs the unit tests and the conformance suites, then publishes to npm with provenance.
 
 The workflow authenticates over OIDC: npm has this repository and `release.yml` registered as a trusted publisher, so no npm token exists anywhere. Renaming the workflow file or moving the repository breaks that link and needs the trusted-publisher entry updated on npmjs.com.
 

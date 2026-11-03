@@ -1,4 +1,5 @@
 import { checkDependencies, installLine } from '../src/cli/deps';
+import { readFileSync } from 'node:fs';
 import { project, json } from './helpers';
 
 /** A project whose package.json declares the given dev dependencies. */
@@ -12,9 +13,31 @@ describe('checkDependencies', () => {
   it('lists what a plain jest-expo project still needs', () => {
     const report = checkDependencies(withDevDeps({ jest: '^29.7.0', 'jest-expo': '~57.0.0' }));
     expect(report.missing).toEqual(
-      expect.arrayContaining(['vitest-expo', 'vitest-native', '@react-native/babel-preset'])
+      expect.arrayContaining([
+        'vitest-expo',
+        expect.stringMatching(/^vitest-native@\^0\.14/),
+        '@react-native/babel-preset',
+      ])
     );
     expect(report.removable).toEqual(expect.arrayContaining(['jest', 'jest-expo']));
+  });
+
+  it('asks for the engine range this package declares, and flags an older one', () => {
+    const own = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    const range = own.peerDependencies['vitest-native'];
+    expect(checkDependencies(withDevDeps({})).missing).toContain(`vitest-native@${range}`);
+    const older = checkDependencies(withDevDeps({ 'vitest-native': '^0.13.0' }));
+    expect(older.present).toContain('vitest-native');
+    expect(older.notes.join(' ')).toMatch(/vitest-native \^0\.13\.0 is installed, but vitest-expo requires/);
+    expect(checkDependencies(withDevDeps({ 'vitest-native': '^0.14.0' })).notes.join(' ')).not.toMatch(/vitest-native/);
+    // A prerelease floor admits the same base only from that prerelease on.
+    expect(checkDependencies(withDevDeps({ 'vitest-native': '0.14.0-rc.5' })).notes.join(' ')).toMatch(/vitest-native 0\.14\.0-rc\.5 is installed/);
+    expect(checkDependencies(withDevDeps({ 'vitest-native': '0.14.0-rc.11' })).notes.join(' ')).not.toMatch(/vitest-native/);
+  });
+
+  it('flags a Vite below 8', () => {
+    expect(checkDependencies(withDevDeps({ vite: '^7.1.0' })).notes.join(' ')).toMatch(/requires Vite 8/);
+    expect(checkDependencies(withDevDeps({ vite: '^8.2.0' })).notes.join(' ')).not.toMatch(/Vite 8/);
   });
 
   it('pins @babel/core to 7 when it is absent, and warns when the project is on 8', () => {
@@ -30,10 +53,10 @@ describe('checkDependencies', () => {
     expect(babel7.notes.join(' ')).not.toContain('@babel/core');
   });
 
-  it('requires Vitest 4 and flags an older declared major', () => {
-    expect(checkDependencies(withDevDeps({})).missing).toContain('vitest@^4');
-    expect(checkDependencies(withDevDeps({ vitest: '^3.2.0' })).notes.join(' ')).toMatch(/requires Vitest 4/);
-    expect(checkDependencies(withDevDeps({ vitest: '^4.1.0' })).notes.join(' ')).not.toMatch(/Vitest 4/);
+  it('requires Vitest 5 and flags an older declared major', () => {
+    expect(checkDependencies(withDevDeps({})).missing).toContain('vitest@^5');
+    expect(checkDependencies(withDevDeps({ vitest: '^4.1.0' })).notes.join(' ')).toMatch(/requires Vitest 5/);
+    expect(checkDependencies(withDevDeps({ vitest: '^5.1.0' })).notes.join(' ')).not.toMatch(/Vitest 5/);
   });
 
   it('asks for react-test-renderer at the project react version on RNTL 13', () => {
@@ -69,7 +92,7 @@ describe('checkDependencies', () => {
 
   it('treats declared packages as present', () => {
     const report = checkDependencies(
-      withDevDeps({ 'vitest-expo': '^57.0.0', 'vitest-native': '^0.11.0', vitest: '^4.1.0' })
+      withDevDeps({ 'vitest-expo': '^57.0.0', 'vitest-native': '^0.14.0', vitest: '^5.1.0' })
     );
     expect(report.missing).not.toContain('vitest-expo');
     expect(report.present).toEqual(expect.arrayContaining(['vitest-expo', 'vitest-native', 'vitest']));
@@ -82,6 +105,6 @@ describe('checkDependencies', () => {
 
 describe('installLine', () => {
   it('renders a single install command', () => {
-    expect(installLine(['vitest-expo', 'vitest@^4'])).toBe('npm install -D vitest-expo vitest@^4');
+    expect(installLine(['vitest-expo', 'vitest@^5'])).toBe('npm install -D vitest-expo vitest@^5');
   });
 });

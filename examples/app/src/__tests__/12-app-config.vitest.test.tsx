@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
+import { requireNativeModule } from 'expo-modules-core';
 import * as Notifications from 'expo-notifications';
 // Importing expo-video crashes under jest-expo (its mock lacks the
 // native-class convention) — under vitest-expo it just works.
@@ -24,8 +25,13 @@ describe('app config manifest injection', () => {
     expect(Linking.createURL('path/to/thing')).toBe('app://path/to/thing');
   });
 
-  it('scheduled notifications resolve to a list (rejects under jest-expo)', async () => {
-    await expect(Notifications.getAllScheduledNotificationsAsync()).resolves.toEqual([]);
+  it('scheduled notifications resolve to a list on the native module (undefined under jest-expo)', async () => {
+    // Read from the native module itself: the suite's setup file mocks the
+    // expo-notifications package, so the package API would answer from there.
+    const scheduler = requireNativeModule('ExpoNotificationScheduler') as {
+      getAllScheduledNotificationsAsync(): Promise<unknown>;
+    };
+    await expect(scheduler.getAllScheduledNotificationsAsync()).resolves.toEqual([]);
   });
 
   it('expo-video imports and renders (crashes at import under jest-expo)', async () => {

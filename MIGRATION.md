@@ -15,7 +15,7 @@ npx vitest-expo migrate
 Run this in the project root, next to `package.json`. It reads the Jest config, writes `vitest.config.mts`, points the `test` script at Vitest while keeping the Jest run as `test:jest`, and prints a report of everything it could not translate.
 
 ```bash
-npm install -D vitest-expo vitest vitest-native @testing-library/react-native test-renderer
+npm install -D vitest-expo vitest vite vitest-native @testing-library/react-native test-renderer
 npm test
 ```
 
@@ -42,12 +42,21 @@ Existing files are never overwritten: re-run with `--force` to replace a `vitest
 
 Config files that cannot be read without executing them (TypeScript, ESM, or computed values) are read statically instead. The command says so when that happens; check the generated config in that case.
 
+## Coming from vitest-expo 57
+
+The engine underneath carries most of what 57.x did on its own, and the test runner moved a major. Four things to check in a project upgrading:
+
+- **Node 22.13 or newer, or 24.3 or newer.** Node 20 and the first Node 24 releases are out; the engine refuses them at startup.
+- **Vitest 5 and Vite 8.** Vitest 5 declares `vite` as a peer: npm installs it on its own, yarn does not, so declare it. Vitest 5 also defaults `clearMocks` to `true` (a test that counts calls made before it, in a `beforeAll` or in another test, now starts from zero; set `clearMocks: false` to keep Jest's default) and hides the console output of passing tests (`silent: 'passed-only'`; `silent: false` shows everything). A `jest.mock` inside a `describe` or a hook, which Vitest 4 tolerated, is refused: `vi.mock` has to sit at the top level of the file, and the compatibility layer maps `jest.mock` to it.
+- **vitest-native 0.14**, the peer range in this package's manifest. The install line the CLI prints names it.
+- **Assets are registered ids**, as under Metro. A snapshot that contained an asset's file name now contains a number, and `Font.loadAsync` or `useFonts` given a made-up numeric id rejects, where jest-expo accepted it; a bundled `require` or a `{ uri }` source loads.
+
 ## What carries over unchanged
 
 None of this needs an edit:
 
 - **`jest.mock` walls in setup files**, including stateful fakes. A setup file that registers mocks for the whole suite works the same way here, closures and all.
-- **`jest.requireActual` partial mocks**, including specifiers that go through a tsconfig path alias (`jest.requireActual('@/lib/config')`). The plugin hands its resolved alias table to the runtime, and extensionless TypeScript imports resolve Metro-style.
+- **`jest.requireActual` partial mocks**, including specifiers that go through a tsconfig path alias (`jest.requireActual('@/lib/config')`). The engine resolves the project's aliases for it, and extensionless TypeScript imports resolve Metro-style. Only aliases with a string `find` reach `requireActual`; a regular-expression `find` applies to imports but not there.
 - **`__mocks__` directories** next to the mocked module, applied through an explicit `jest.mock('pkg')` call.
 - **Automocks** — `jest.mock('pkg')` without a factory.
 - **Spies**: `jest.spyOn` on objects, on prototypes, and on module namespace objects.
@@ -311,7 +320,7 @@ App code is transformed by Vite, so Babel plugins from the project's `babel.conf
 export default defineConfig({
   plugins: [vitestExpo()],
   resolve: {
-    alias: [{ find: /^@components\//, replacement: '/src/components/' }],
+    alias: [{ find: '@components', replacement: '/src/components' }],
   },
 });
 ```

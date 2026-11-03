@@ -12,9 +12,10 @@ import React from 'react';
 import { vi, expect } from 'vitest';
 import * as rntl from '@testing-library/react-native';
 // Runner-agnostic internals reused from expo-router (no `exports` field, deep
-// imports are stable within a pinned minor).
+// imports are verified per Expo SDK).
 import { ExpoRoot } from 'expo-router/build/ExpoRoot';
-import { store } from 'expo-router/build/global-state/router-store';
+import { getRouteInfoFromState } from 'expo-router/build/global-state/getRouteInfoFromState';
+import { navigationRef } from 'expo-router/build/global-state/navigationRef';
 import { router } from 'expo-router/build/imperative-api';
 import {
   getMockConfig,
@@ -40,29 +41,34 @@ export type RenderRouterOptions = Parameters<typeof rntl.render>[1] & {
 
 type RenderResult = Awaited<ReturnType<typeof rntl.render>>;
 
+type SearchParams = ReturnType<typeof getRouteInfoFromState>['params'];
+
 export interface RouterRenderResult extends RenderResult {
   getPathname(): string;
   getPathnameWithParams(): string;
   getSegments(): string[];
-  getSearchParams(): Record<string, string | string[]>;
+  getSearchParams(): SearchParams;
   getRouterState(): unknown;
 }
 
+// The current route, read the way expo-router's own testing library reads it.
+const currentRoute = () => getRouteInfoFromState(navigationRef.getRootState());
+
 const routerInfoHelpers = {
   getPathname(): string {
-    return store.getRouteInfo().pathname;
+    return currentRoute().pathname;
   },
   getSegments(): string[] {
-    return store.getRouteInfo().segments;
+    return currentRoute().segments;
   },
-  getSearchParams(): Record<string, string | string[]> {
-    return store.getRouteInfo().params;
+  getSearchParams(): SearchParams {
+    return currentRoute().params;
   },
   getPathnameWithParams(): string {
-    return store.getRouteInfo().pathnameWithParams;
+    return currentRoute().pathnameWithParams;
   },
   getRouterState(): unknown {
-    return store.state;
+    return navigationRef.getRootState();
   },
 };
 
@@ -136,7 +142,7 @@ interface RouterScreen {
   getPathname(): string;
   getPathnameWithParams(): string;
   getSegments(): string[];
-  getSearchParams(): Record<string, string | string[]>;
+  getSearchParams(): SearchParams;
   getRouterState(): unknown;
 }
 
@@ -184,11 +190,11 @@ expect.extend({
 });
 
 declare module 'vitest' {
-  interface Assertion<T> {
-    toHavePathname(expected: string): T;
-    toHavePathnameWithParams(expected: string): T;
-    toHaveSegments(expected: string[]): T;
-    toHaveSearchParams(expected: Record<string, string | string[]>): T;
-    toHaveRouterState(expected: unknown): T;
+  interface Assertion<R extends void | Promise<void> = void, T = unknown> {
+    toHavePathname(expected: string): R;
+    toHavePathnameWithParams(expected: string): R;
+    toHaveSegments(expected: string[]): R;
+    toHaveSearchParams(expected: Record<string, string | string[]>): R;
+    toHaveRouterState(expected: unknown): R;
   }
 }

@@ -8,13 +8,10 @@ export default defineConfig({
     'router/index': 'src/router/index.tsx',
     'snapshot-serializer': 'src/snapshot/serializer.ts',
     helpers: 'src/helpers.ts',
-    'esm-loader': 'src/esm-loader.ts',
     'cli/index': 'src/cli/index.ts',
   },
   format: ['esm'],
-  // esm-loader is a Node loader hook and the CLI is a binary, not user-facing
-  // API — no .d.ts needed for either (and esm-loader's node:* imports trip the
-  // isolated dts entry build).
+  // The CLI is a binary, not user-facing API — no .d.ts needed.
   dts: {
     entry: {
       index: 'src/index.ts',
@@ -26,7 +23,7 @@ export default defineConfig({
     },
   },
   clean: true,
-  target: 'node20',
+  target: 'node22',
   // Everything bare stays external — the package transpiles, it does not vendor.
   external: [/^[a-zA-Z@]/],
   esbuildOptions(options) {

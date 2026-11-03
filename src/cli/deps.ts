@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { readJsonc } from './json';
@@ -38,20 +39,35 @@ export function checkDependencies(root: string): DependencyReport {
   };
 
   need('vitest-expo');
-  need('vitest-native');
+  // The engine range this package declares as its peer, so the install line
+  // never names a release the peer check would then refuse.
+  const engineRange = ownPeerRange('vitest-native');
+  need('vitest-native', `vitest-native@${engineRange}`);
+  const engineVersion = installedVersion(require, 'vitest-native') ?? declared['vitest-native'];
+  if (engineVersion && isBelow(engineVersion, engineRange)) {
+    notes.push(
+      `vitest-native ${engineVersion} is installed, but vitest-expo requires ${engineRange} — upgrade with: npm install -D vitest-native@${engineRange}`
+    );
+  }
+  // Vitest's peer. npm installs it on its own; yarn does not.
+  need('vite', 'vite@^8');
+  const viteVersion = installedVersion(require, 'vite') ?? declared.vite;
+  const viteMajor = Number(major(viteVersion ?? ''));
+  if (Number.isFinite(viteMajor) && viteMajor < 8) {
+    notes.push(`vite ${viteVersion} is installed, but vitest-expo requires Vite 8 — upgrade with: npm install -D vite@^8`);
+  }
   need('@testing-library/react-native');
 
-  // Vitest 4 is required (the underlying engine's floor). An installed 3.x
-  // only surfaces as a package-manager peer warning that is easy to miss —
-  // flag it loudly here instead.
+  // Vitest 5 is required. An older install only surfaces as a package-manager
+  // peer warning that is easy to miss — flag it loudly here instead.
   const vitestVersion = installedVersion(require, 'vitest') ?? declared.vitest;
   if (!vitestVersion && !('vitest' in declared)) {
-    missing.push('vitest@^4');
+    missing.push('vitest@^5');
   } else {
     const vitestMajor = Number(major(vitestVersion ?? ''));
-    if (Number.isFinite(vitestMajor) && vitestMajor < 4) {
+    if (Number.isFinite(vitestMajor) && vitestMajor < 5) {
       notes.push(
-        `vitest ${vitestVersion} is installed, but vitest-expo requires Vitest 4 — upgrade with: npm install -D vitest@^4`
+        `vitest ${vitestVersion} is installed, but vitest-expo requires Vitest 5 — upgrade with: npm install -D vitest@^5`
       );
     } else {
       present.push('vitest');
@@ -110,6 +126,48 @@ export function checkDependencies(root: string): DependencyReport {
 
 export function installLine(missing: string[]): string {
   return `npm install -D ${missing.join(' ')}`;
+}
+
+/** A peer range from this package's own manifest ('*' when it cannot be read). */
+function ownPeerRange(name: string): string {
+  try {
+    const own = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    return own.peerDependencies?.[name] ?? '*';
+  } catch {
+    return '*';
+  }
+}
+
+/**
+ * Whether a version (or a declared range's base) is below the floor of a
+ * range. A prerelease floor (`^0.14.0-rc.11`) admits the same base only from
+ * that prerelease on, the way npm reads it; that branch matters while the
+ * engine peer names a release candidate and can go with it.
+ */
+function isBelow(version: string, range: string): boolean {
+  const floor = numeric(range);
+  const value = numeric(version);
+  if (!floor || !value) return false;
+  for (let i = 0; i < 3; i++) {
+    if (value[i] !== floor[i]) return value[i] < floor[i];
+  }
+  const floorPre = prerelease(range);
+  if (floorPre === null) return false;
+  const valuePre = prerelease(version);
+  // The release itself is above every prerelease of its base.
+  if (valuePre === null) return false;
+  return valuePre < floorPre;
+}
+
+function numeric(spec: string): [number, number, number] | null {
+  const match = /(\d+)\.(\d+)\.(\d+)/.exec(spec);
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+}
+
+/** The numeric part of a prerelease tag (`-rc.11` → 11), or null without one. */
+function prerelease(spec: string): number | null {
+  const match = /\d+\.\d+\.\d+-[a-z]+\.?(\d+)/i.exec(spec);
+  return match ? Number(match[1]) : null;
 }
 
 function resolves(require: NodeRequire, name: string): boolean {
