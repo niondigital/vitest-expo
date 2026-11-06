@@ -1,6 +1,6 @@
 {
   "name": "vitest-expo",
-  "version": "58.0.0-rc.1",
+  "version": "58.0.0",
   "description": "Test Expo apps with Vitest — a drop-in replacement for jest-expo, built on vitest-native.",
   "license": "MIT",
   "author": "Sebastian Weyrauch <sw@nion-digital.com>",
@@ -77,7 +77,7 @@
     "react": ">=18",
     "vite": ">=8 <9",
     "vitest": ">=5 <6",
-    "vitest-native": "^0.14.0-rc.11"
+    "vitest-native": "^0.14.0"
   },
   "peerDependenciesMeta": {
     "expo-router": {
@@ -90,7 +90,7 @@
     "tsup": "^8.5.1",
     "typescript": "~6.0.3",
     "vitest": "^5.1.0",
-    "vitest-native": "0.14.0-rc.11"
+    "vitest-native": "0.14.1"
   },
   "workspaces": [
     "examples/app"

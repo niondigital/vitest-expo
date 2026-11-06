@@ -2,7 +2,7 @@
 
 ## 58.0.0
 
-Expo SDK 58, and a package that is half the size because the engine underneath now carries what this layer used to. Published as `58.0.0-rc.1` on the `next` dist-tag while vitest-native 0.14 is a release candidate; `58.0.0` follows its stable release.
+Expo SDK 58, and a package that is half the size because the engine underneath now carries what this layer used to. Requires the stable vitest-native 0.14.
 
 - Verified against Expo SDK 58, as the major says. The engine underneath supports SDK 57 as well, but this package's router port and example app follow one SDK at a time; `vitest-expo@57` stays the release for SDK 57.
 - Requires vitest-native 0.14, Vitest 5 and Node 22.13 or newer (Node 24 from 24.3). Vitest 4 and Node 20 are no longer supported: the engine's matcher types are written against Vitest 5, and Node 20 reached end of life.

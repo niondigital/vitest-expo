@@ -57,7 +57,7 @@
     "typescript": "~6.0.3",
     "vitest": "^5.1.0",
     "vitest-expo": "file:../..",
-    "vitest-native": "0.14.0-rc.11"
+    "vitest-native": "0.14.1"
   },
   "scripts": {
     "start": "expo start",
