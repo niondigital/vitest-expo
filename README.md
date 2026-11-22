@@ -96,7 +96,7 @@ For finer control:
 
 - `mockNativeModule(name, impl)` from `vitest-native/helpers` stubs a single native module — the Expo packages themselves run their real code, so this is where their behavior is steered
 - `extendPresetMock(pkg, overrides)` from `vitest-expo/helpers` tweaks a built-in library preset (reanimated, gesture-handler, …)
-- `transformPackages: ['pkg']` handles libraries shipping untranspiled JSX
+- `transformPackages: ['pkg']` handles libraries shipping Metro-only source, such as Flow, that the engine does not detect
 
 ## Testing navigation
 
@@ -162,12 +162,13 @@ One entry covers the Vitest globals and the RNTL matchers (`toBeOnTheScreen`, �
 
 The major version tracks the Expo SDK it is verified against, the way jest-expo does it — `vitest-expo@58` is for SDK 58.
 
-| vitest-expo | Expo SDK | React Native | Vitest | vitest-native | RNTL |
-|---|---|---|---|---|---|
-| 58.x | 58 | 0.88 | 5 | 0.14 | 13 · 14 |
-| 57.x | 57 | 0.86 | 4 | 0.13 | 13 · 14 |
+| vitest-expo | Expo SDK | React Native | Vitest | vitest-native | RNTL | Node |
+|---|---|---|---|---|---|---|
+| 58.1 | 58 | 0.88 | 5 | 0.15 | 13 · 14 | 22.22.3+ · 24.12+ · 26+ |
+| 58.0 | 58 | 0.88 | 5 | 0.14 | 13 · 14 | 22.13+ · 24.3+ |
+| 57.x | 57 | 0.86 | 4 | 0.13 | 13 · 14 | 20.19+ |
 
-Node 22.13 or newer, or Node 24.3 or newer. Install layouts are verified against a packed release — npm, pnpm and yarn (`nodeLinker: node-modules`) on every CI run, bun with the same script by hand. Yarn Plug'n'Play is not supported.
+The engine checks the Node version at startup and names the release to install. Install layouts are verified against a packed release — npm, pnpm and yarn (`nodeLinker: node-modules`) on every CI run, bun with the same script by hand. Yarn Plug'n'Play is not supported.
 
 ## Why trust it
 
@@ -197,12 +198,11 @@ Package entry points: `vitest-expo` (the plugin) · `vitest-expo/router` · `vit
 
 - On web, `@testing-library/react-native` is not usable — its text-in-`<Text>` invariant fires on DOM hosts. That is runner-independent (`jest-expo/web` fails identically); render web tests via the standalone renderer (`test-renderer`) or React Testing Library
 - `vitest-expo/router` uses deep imports into `expo-router/build/*` (no `exports` field there); verified per Expo SDK — currently SDK 58
-- Jest auto-applies root `__mocks__` for node_modules packages without a call; Vitest needs the explicit `jest.mock('pkg')`
 - Class mocks constructed with `new` need a `function` implementation — arrow implementations are not constructable
 - `jest.requireMock` does not return the live factory instance; import the mocked module instead
 - Partial mocks of app modules with a deep import graph are best written as `vi.mock(path, async (importOriginal) => …)`
 - Existing jest-expo snapshots need one regeneration (deliberate: the serializer renders the real host tree in a curated format)
-- App code is transformed by Vite, not by `babel-preset-expo`. Babel-only syntax still works — `export default from`, Flow-annotated `.js` (with an `@flow` pragma), legacy decorators (with `experimentalDecorators` in tsconfig) — but plugins from the project's `babel.config.js` do not apply; path aliases belong in `resolve.alias`
+- App code is transformed by Vite, not by `babel-preset-expo`. On iOS and Android, a file that needs a plugin from the project's `babel.config.js` (Flow, the worklets plugin, a decorators plugin the config lists) is compiled with that config; other files, and every file on web, are not. Babel-only syntax works on every platform — `export default from`, Flow-annotated `.js` (with an `@flow` pragma), legacy decorators (with `experimentalDecorators` in tsconfig); path aliases belong in `resolve.alias`
 - Yarn Plug'n'Play is not supported — the React Native toolchain resolves through a real `node_modules` tree; use `nodeLinker: node-modules` (npm, pnpm and bun layouts all work)
 - `import.meta` is standard ESM meta under Vite, not Expo's import-meta registry
 - `'use dom'` modules run as ordinary React components; they are not rewritten into WebView proxies

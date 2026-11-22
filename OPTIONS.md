@@ -35,20 +35,21 @@ vitestExpo({ jestCompat: false })
 
 `string[]`, default `[]`
 
-node_modules packages that ship untranspiled JSX or Flow in `.js` files, which Vite's import analysis rejects. Packages that declare `react-native` as a dependency are detected automatically; the ones that need this are usually those declaring it only as a *peer* dependency, so nothing marks them as React Native code.
+node_modules packages that ship source only Metro's pipeline reads — Flow annotations in `.js` files, typically — and that nothing marks as React Native code. Packages that declare `react-native` as a dependency are detected automatically; the ones that need this usually declare it only as a *peer* dependency, or not at all.
 
-The symptom is a parse error pointing into node_modules, on a file that is plainly JSX:
+A package whose only Metro habit is JSX in `.js` files needs nothing: the engine compiles a package file as JSX when Vite's parser rejects it. What it cannot compile that way it reports, naming the package and the fix:
 
 ```
-Failed to parse source for import analysis because the content contains invalid JS syntax.
-node_modules/react-native-flash-message/src/FlashMessage.js
+[vitest-native] react-native-calendars ships source Vite cannot parse (…), and nothing compiles the package. Add it to reactNative({ transform: ['react-native-calendars'] }).
 ```
+
+`transformPackages` is that list:
 
 ```ts
-vitestExpo({ transformPackages: ['react-native-flash-message'] })
+vitestExpo({ transformPackages: ['react-native-calendars'] })
 ```
 
-This is the equivalent of adding a package to Jest's `transformIgnorePatterns` allowlist. The package is handed to the engine's Node-side transform, which compiles it and its dependencies the way it compiles React Native itself.
+This is the equivalent of adding a package to Jest's `transformIgnorePatterns` allowlist. The package is handed to the engine's Node-side transform, which compiles it and its dependencies the way it compiles React Native itself. Entries passed as `reactNative: { transform }` are kept alongside it.
 
 ## acknowledgedDuplicates
 
@@ -91,7 +92,7 @@ The case this exists for: a render-performance heuristic. `react-native-render-h
 vitestExpo({ silenceWarnings: [/in short periods of time/] })
 ```
 
-Nothing beyond React Native's own artifacts is silenced by default, because which third-party noise is irrelevant depends on the app.
+Nothing is silenced by default, because which third-party noise is irrelevant depends on the app.
 
 Both this and `acknowledgedDuplicates` filter through Vitest's [`onConsoleLog`](https://vitest.dev/config/onconsolelog) hook. They are a shortcut for two known cases, not a replacement for it: a handler of your own keeps working, runs first, and its `false` wins.
 

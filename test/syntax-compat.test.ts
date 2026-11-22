@@ -76,6 +76,13 @@ describe('flow', () => {
   it('does not treat a stray @flow in a string as a pragma', async () => {
     expect(await transform('export const doc = "see @flow docs";\n', 'c.js')).toBeNull();
   });
+
+  it('leaves Flow to the engine when turned off, as on the native platforms', async () => {
+    const native = syntaxCompatPlugin({ flow: false });
+    const handler = typeof native.transform === 'function' ? native.transform : native.transform!.handler;
+    const source = '// @flow\nexport function f(x: number): string {\n  return String(x);\n}\n';
+    expect(await handler.call({} as never, source, path.join(root, 'f.js'))).toBeNull();
+  });
 });
 
 describe('scope', () => {
