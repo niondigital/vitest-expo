@@ -1,5 +1,18 @@
 # vitest-expo
 
+## 58.1.0
+
+vitest-native 0.15 underneath, a higher Node floor with it, and Jest's root `__mocks__` applied the way Jest applies them.
+
+- Requires vitest-native 0.15 and Node 22.22.3 or newer within Node 22, 24.12 or newer within Node 24, or Node 26 or newer. The engine refuses other releases at startup (`UNSUPPORTED_NODE`) and names the one to install; Node 23 and 25 are not supported. A CI image or an `.nvmrc` pinned to an older 22 or 24 release needs updating; `actions/setup-node` with `node-version: 22` or `24` picks a current release of the line. Avoid Node 24.13.0, which can crash a run at startup; the engine's `doctor` warns about it.
+- A manual mock of an installed package in a root `__mocks__` folder now applies without a `jest.mock` call, in every test file, for imports and `require()` alike, as under jest-expo. A suite that already calls `jest.mock('pkg')` for such a file keeps working, and the call can stay. A root mock that nothing called used to leave the real package running; it now applies, so a test that depended on the real package needs `jest.unmock('pkg')`. A package a built-in preset covers keeps its preset, and the run says that its manual mock is not applied. With `jestCompat: false` nothing is applied on its own: request the mock with `vi.mock('pkg')`.
+- The web platform's setup runs before the engine's Jest setup. That setup now requires `react-native` through Node to give `View.prototype` the native methods, and on web, which has no engine, that loaded React Native's Flow source and failed every file with `SyntaxError: Unexpected token 'typeof'`. With the web setup first, `react-native` is react-native-web there too, and the native component registry reads as empty, as it is on web.
+- Flow in app code is the engine's on iOS and Android: it compiles project source that needs Babel with the project's own Babel config. The web platform, which has no engine, keeps stripping Flow from `.js` files with an `@flow` pragma. The `export default from` rewrite stays on every platform, since the engine does not compile that syntax, and so does the `@oxc-project/runtime` dependency, which Vite's decorator lowering imports its helpers from.
+- `release()` on Expo shared objects comes from the engine; the copy here is gone. The development-build model (the ExpoGo module reads as absent) is unchanged.
+- React Native's moved and deprecated notices are no longer filtered. The engine reads `react-native`'s exports as a test uses them instead of all at once, so the notices stopped firing once per test file; one that appears now points at code that reads the deprecated name, as it does under jest-expo. The duplicate-resolution report is still kept to its first occurrence per package.
+- `transformPackages` is for packages that ship Metro-only source, Flow typically. One whose only problem is JSX in `.js` files needs no entry: the engine compiles such a file when Vite's parser rejects it, and names the package and the fix when it cannot.
+- Everything else vitest-native 0.15 changes applies as its changelog describes. Most of it needs no action; under the native engine, Gesture Handler and FlashList now run their own Jest setup, and Reanimated 4.7 or newer is its own test mock.
+
 ## 58.0.0
 
 Expo SDK 58, and a package that is half the size because the engine underneath now carries what this layer used to. Requires the stable vitest-native 0.14.
