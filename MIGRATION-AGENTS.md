@@ -25,6 +25,7 @@ Rewrite one test/setup file at a time and re-run that file before moving on. App
 | `jest.mock(path, factory)` | `vi.mock(path, factory)` |
 | `jest.mock(path, () => ({ ...jest.requireActual(path), x }))` | `vi.mock(path, async (importOriginal) => ({ ...(await importOriginal()), x }))` |
 | `jest.mock(path)` (automock / `__mocks__`) | `vi.mock(path)` |
+| a root `__mocks__/<pkg>` file for an installed package, applied with no call | `vi.mock('<pkg>')` in a setup file — the compatibility layer applies such a file on its own, Vitest only on request |
 | `jest.requireActual(path)` outside a factory | `await vi.importActual(path)` (make the enclosing scope async) |
 | `jest.requireMock(path)` | import the mocked module directly |
 | `jest.fn()` / `jest.fn(impl)` | `vi.fn()` / `vi.fn(impl)` |

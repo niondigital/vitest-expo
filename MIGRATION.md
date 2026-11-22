@@ -44,11 +44,12 @@ Config files that cannot be read without executing them (TypeScript, ESM, or com
 
 ## Coming from vitest-expo 57
 
-The engine underneath carries most of what 57.x did on its own, and the test runner moved a major. Four things to check in a project upgrading:
+The engine underneath carries most of what 57.x did on its own, and the test runner moved a major. Five things to check in a project upgrading:
 
-- **Node 22.13 or newer, or 24.3 or newer.** Node 20 and the first Node 24 releases are out; the engine refuses them at startup.
+- **Node 22.22.3 or newer within Node 22, 24.12 or newer within Node 24, or Node 26 or newer.** Node 20, 23 and 25 and the older releases of 22 and 24 are out; the engine refuses them at startup and names the release to install. That includes CI images and `.nvmrc` or `engines` pins.
 - **Vitest 5 and Vite 8.** Vitest 5 declares `vite` as a peer: npm installs it on its own, yarn does not, so declare it. Vitest 5 also defaults `clearMocks` to `true` (a test that counts calls made before it, in a `beforeAll` or in another test, now starts from zero; set `clearMocks: false` to keep Jest's default) and hides the console output of passing tests (`silent: 'passed-only'`; `silent: false` shows everything). A `jest.mock` inside a `describe` or a hook, which Vitest 4 tolerated, is refused: `vi.mock` has to sit at the top level of the file, and the compatibility layer maps `jest.mock` to it.
-- **vitest-native 0.14**, the peer range in this package's manifest. The install line the CLI prints names it.
+- **vitest-native 0.15**, the peer range in this package's manifest. The install line the CLI prints names it.
+- **Root `__mocks__` for installed packages apply on their own**, as under Jest: a `__mocks__/some-package.ts` replaces the package in every test file without a `jest.mock('some-package')` call. A suite that has the call keeps working; a root mock nothing called, which left the real package running, now applies.
 - **Assets are registered ids**, as under Metro. A snapshot that contained an asset's file name now contains a number, and `Font.loadAsync` or `useFonts` given a made-up numeric id rejects, where jest-expo accepted it; a bundled `require` or a `{ uri }` source loads.
 
 ## What carries over unchanged
@@ -58,13 +59,12 @@ None of this needs an edit:
 - **`jest.mock` walls in setup files**, including stateful fakes. A setup file that registers mocks for the whole suite works the same way here, closures and all.
 - **`jest.requireActual` partial mocks**, including specifiers that go through a tsconfig path alias (`jest.requireActual('@/lib/config')`). The engine resolves the project's aliases for it, and extensionless TypeScript imports resolve Metro-style. Only aliases with a string `find` reach `requireActual`; a regular-expression `find` applies to imports but not there.
 - **`__mocks__` directories** next to the mocked module, applied through an explicit `jest.mock('pkg')` call.
+- **Root `__mocks__` for node_modules packages**, applied without any call, as Jest applies them: a `__mocks__/some-package.ts` at the project root replaces `some-package` in every test file. A package a built-in preset covers keeps the preset, and the run says the manual mock is not applied. With `jestCompat: false` this is off; request the mock with `vi.mock('some-package')`.
 - **Automocks** — `jest.mock('pkg')` without a factory.
 - **Spies**: `jest.spyOn` on objects, on prototypes, and on module namespace objects.
 - **Fake timers**, `jest.setSystemTime`, `jest.advanceTimersByTime`, and the async variants.
 - **`it.each` / `describe.each`**, both the array form and the tagged-template form.
 - **React Native Testing Library** on iOS and Android: `render`, `screen`, `fireEvent`, `userEvent`, `waitFor`, and the `toBeOnTheScreen` matcher family.
-
-One difference worth knowing before reading the list below: Jest applies a root `__mocks__` directory for a node_modules package automatically, without any call. Vitest does not — see [Root `__mocks__` for node_modules packages](#root-__mocks__-for-node_modules-packages).
 
 ## Patterns that need a hand
 
@@ -214,17 +214,6 @@ setColorScheme('dark');
 ```
 
 `vitest-native/helpers` carries the same shape of control for other ambient state: `setDimensions`, `setInsets`, `setPlatform`, `mockNativeModule`, `resetAllMocks`.
-
-### Root `__mocks__` for node_modules packages
-
-Jest applies a root-level `__mocks__/some-package.ts` automatically, with no call anywhere. Vitest requires the mock to be requested. Add one call — in a setup file if the mock is meant for the whole suite:
-
-```ts
-// test-setup.ts
-jest.mock('some-package'); // picks up __mocks__/some-package.ts
-```
-
-`__mocks__` directories next to a *local* module already need an explicit call under Jest, so those carry over unchanged.
 
 ### Lazy require of a mocked package
 
@@ -455,7 +444,7 @@ import { mockNativeModule } from 'vitest-native/helpers';
 mockNativeModule('ExpoSomeModule', { getValueAsync: async () => 'value' });
 ```
 
-**4. `transformPackages`** — not a mock at all, but the fix for a package that ships untranspiled JSX or Flow in `.js` files and is not auto-detected (typically because it declares `react-native` only as a peer dependency). It is the equivalent of adding an entry to Jest's `transformIgnorePatterns` allowlist:
+**4. `transformPackages`** — not a mock at all, but the fix for a package that ships Metro-only source (Flow in `.js` files, typically) and is not auto-detected (typically because it declares `react-native` only as a peer dependency). JSX alone needs no entry; the engine compiles it, and names the package when it cannot. It is the equivalent of adding an entry to Jest's `transformIgnorePatterns` allowlist:
 
 ```ts
 plugins: [vitestExpo({ transformPackages: ['react-native-some-library'] })],
@@ -467,7 +456,7 @@ Reach for the narrowest one that works: a preset extension survives a library up
 
 **`Your Vite config uses features that are unsupported by configLoader: 'native'`** — an Expo app's `package.json` has no `"type": "module"`, so Node reads `vitest.config.ts` as CommonJS while the file uses `import`/`export default`. Name the config `vitest.config.mts` and it is unambiguous. Two consequences: use `import.meta.dirname` instead of `__dirname`, and add `"**/*.mts"` to `include` in `tsconfig.json` if the config should be type-checked. `vitest-expo init` and `migrate` write `.mts` for this reason.
 
-**React Native deprecation notices** (`SafeAreaView has been deprecated`, `Clipboard has been extracted`, …) are suppressed. React Native exposes those names as getters that warn when read, and building a module namespace for `react-native` reads all of them — so they fired once per test file while saying nothing about the app. jest-expo never shows them, and neither does this.
+**React Native deprecation notices** (`SafeAreaView has been deprecated`, `Clipboard has been extracted`, …) come from code that reads the deprecated name — the app, or a library it uses. React Native exposes those names as getters that warn when read, and the engine reads `react-native`'s exports only as they are used, so a notice points at a real use, as it does under jest-expo.
 
 **`'<package>' resolves to two different files`** — Node's `require` and Vite picked different entry files for the same package, so it exists twice with separate module-level state. This one is real, and it is reported once per package instead of once per test file.
 
@@ -497,7 +486,7 @@ vitestExpo({
 })
 ```
 
-Both options are described with examples in the [option reference](./OPTIONS.md). `silenceWarnings` takes strings (matched from the start of the message) or patterns. Which third-party noise is irrelevant depends on the app, so nothing beyond React Native's own artifacts is silenced by default. A `test.onConsoleLog` of your own keeps working and runs first.
+Both options are described with examples in the [option reference](./OPTIONS.md). `silenceWarnings` takes strings (matched from the start of the message) or patterns. Which third-party noise is irrelevant depends on the app, so nothing is silenced by default. A `test.onConsoleLog` of your own keeps working and runs first.
 
 **`An update to <Component> inside a test was not wrapped in act(...)`** — a `render()` whose result is used without `await`. Since `@testing-library/react-native` 14 the render is async, so the commit lands outside `act`. Watch for render helpers: a helper that does `return render(...)` hands the promise on, and every caller needs the `await` too.
 
@@ -506,7 +495,7 @@ Both options are described with examples in the [option reference](./OPTIONS.md)
 A short checklist before digging deeper:
 
 - **`Cannot find module` for a relative import inside a package** — the package likely ships untranspiled source; add it to `transformPackages`.
-- **A mock does not apply** — check that the call is `jest.mock` / `vi.mock` and not `doMock`, and that a root `__mocks__` directory has an explicit call.
+- **A mock does not apply** — check that the call is `jest.mock` / `vi.mock` and not `doMock`. A root `__mocks__` file for an installed package needs no call, unless `jestCompat` is off or a built-in preset covers the package (the run says so).
 - **`X is not a constructor`** — an arrow `mockImplementation` used with `new`; see [Class mocks need `function` implementations](#class-mocks-need-function-implementations).
 - **A test passes alone and fails in the suite** — state left in a module-level mock; `resetAllMocks` from `vitest-native/helpers` in a `beforeEach` resets the ambient state (platform, dimensions, color scheme) along with the mocks.
 - **Platform-dependent assertions fail** — the run is iOS unless a config says otherwise.

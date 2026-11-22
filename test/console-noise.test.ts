@@ -3,22 +3,10 @@ import { consoleNoiseFilter } from '../src/runtime/console-noise';
 const DUPLICATE = (pkg: string) =>
   `[vitest-native] '${pkg}' resolves to two different files.\n  Node (require) ->  /a/lib/index.js\n  Vite ("module") ->  /a/es/index.js`;
 
-describe('react native deprecation notices', () => {
-  it('drops the notices React Native emits from its entry getters', () => {
+describe('react native warnings', () => {
+  it('passes them through, deprecation notices included', () => {
     const filter = consoleNoiseFilter();
-    for (const notice of [
-      'SafeAreaView has been deprecated and will be removed in a future release. Please use …',
-      'Clipboard has been extracted from react-native core and will be removed …',
-      'ProgressBarAndroid has been extracted from react-native core …',
-      'InteractionManager has been deprecated and will be removed in a future release …',
-      'PushNotificationIOS has been extracted from react-native core …',
-    ]) {
-      expect(filter(notice, 'stderr')).toBe(false);
-    }
-  });
-
-  it('keeps everything else React Native warns about', () => {
-    const filter = consoleNoiseFilter();
+    expect(filter('SafeAreaView has been deprecated and will be removed in a future release. Please use …', 'stderr')).toBeUndefined();
     expect(filter('Warning: componentWillReceiveProps has been renamed', 'stderr')).toBeUndefined();
     expect(filter('An update to TextButton inside a test was not wrapped in act(...)', 'stderr')).toBeUndefined();
   });
@@ -54,8 +42,8 @@ describe('a filter the project configured', () => {
   });
 
   it('does not get a say once it has passed a log through', () => {
-    const filter = consoleNoiseFilter(() => undefined);
-    expect(filter('SafeAreaView has been deprecated and will be removed in a future release', 'stderr')).toBe(false);
+    const filter = consoleNoiseFilter(() => undefined, { silenceWarnings: ['noise'] });
+    expect(filter('noise from a library', 'stderr')).toBe(false);
   });
 });
 

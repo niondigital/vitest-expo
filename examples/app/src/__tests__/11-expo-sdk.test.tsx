@@ -4,7 +4,6 @@ import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
 import { File, Paths } from 'expo-file-system';
-import { runner } from './test-utils';
 
 /**
  * Core Expo SDK modules beyond the default template — the surface a typical
@@ -51,16 +50,10 @@ describe('core expo SDK modules', () => {
     // as a vitest-expo improvement in 12-app-config.vitest.test.tsx.
   });
 
-  it('KNOWN DELTA: root __mocks__ auto-apply for node_modules packages', async () => {
-    // __mocks__/expo-clipboard.ts exists at the project root (for 14-mock-dirs).
-    // Jest applies node_modules __mocks__ AUTOMATICALLY, without a jest.mock
-    // call; Vitest only applies them on an explicit vi.mock call. Migration
-    // guide: add the explicit call (portable under both runners, see 14).
-    const clipboard = await Clipboard.getStringAsync();
-    if (runner === 'jest') {
-      expect(clipboard).toBe('clipboard from root __mocks__');
-    } else {
-      expect(clipboard).toBeFalsy();
-    }
+  it('applies the root __mocks__ of a node_modules package without a jest.mock call', async () => {
+    // __mocks__/expo-clipboard.ts sits at the project root (14-mock-dirs calls
+    // jest.mock for it explicitly). Jest applies such a manual mock on its own,
+    // and so does the compatibility layer: this file never mentions it.
+    await expect(Clipboard.getStringAsync()).resolves.toBe('clipboard from root __mocks__');
   });
 });

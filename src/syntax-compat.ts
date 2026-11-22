@@ -8,6 +8,15 @@ function transformJsx(code: string, file: string, map?: object) {
   return transformWithOxc(code, file, { lang: 'jsx', jsx: { runtime: 'automatic' } }, map);
 }
 
+export interface SyntaxCompatOptions {
+  /**
+   * Strip Flow from .js files with an `@flow` pragma (default: true). The
+   * native engine compiles Flow in project source with the project's own Babel
+   * config, so only the web platform, which runs without the engine, needs it.
+   */
+  flow?: boolean;
+}
+
 /**
  * Babel-only syntax that babel-preset-expo accepts in app code but Vite's
  * transformer does not: the `export default from` proposal and Flow-annotated
@@ -16,7 +25,8 @@ function transformJsx(code: string, file: string, map?: object) {
  * either ship compiled output or are handled by the engine's React Native
  * transform.
  */
-export function syntaxCompatPlugin(): Plugin {
+export function syntaxCompatPlugin(options: SyntaxCompatOptions = {}): Plugin {
+  const flow = options.flow ?? true;
   return {
     name: 'vitest-expo:syntax-compat',
     enforce: 'pre',
@@ -40,7 +50,7 @@ export function syntaxCompatPlugin(): Plugin {
 
       let result: { code: string; map: any } | null = null;
 
-      if (/\.jsx?$/.test(file) && hasFlowPragma(code)) {
+      if (flow && /\.jsx?$/.test(file) && hasFlowPragma(code)) {
         result = stripFlow(code, file);
       }
 

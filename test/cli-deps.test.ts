@@ -15,7 +15,7 @@ describe('checkDependencies', () => {
     expect(report.missing).toEqual(
       expect.arrayContaining([
         'vitest-expo',
-        expect.stringMatching(/^vitest-native@\^0\.14/),
+        expect.stringMatching(/^vitest-native@\^0\.15/),
         '@react-native/babel-preset',
       ])
     );
@@ -26,10 +26,10 @@ describe('checkDependencies', () => {
     const own = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
     const range = own.peerDependencies['vitest-native'];
     expect(checkDependencies(withDevDeps({})).missing).toContain(`vitest-native@${range}`);
-    const older = checkDependencies(withDevDeps({ 'vitest-native': '^0.13.0' }));
+    const older = checkDependencies(withDevDeps({ 'vitest-native': '^0.14.0' }));
     expect(older.present).toContain('vitest-native');
-    expect(older.notes.join(' ')).toMatch(/vitest-native \^0\.13\.0 is installed, but vitest-expo requires/);
-    expect(checkDependencies(withDevDeps({ 'vitest-native': '^0.14.0' })).notes.join(' ')).not.toMatch(/vitest-native/);
+    expect(older.notes.join(' ')).toMatch(/vitest-native \^0\.14\.0 is installed, but vitest-expo requires/);
+    expect(checkDependencies(withDevDeps({ 'vitest-native': '^0.15.0' })).notes.join(' ')).not.toMatch(/vitest-native/);
   });
 
   it('flags a Vite below 8', () => {
@@ -89,7 +89,7 @@ describe('checkDependencies', () => {
 
   it('treats declared packages as present', () => {
     const report = checkDependencies(
-      withDevDeps({ 'vitest-expo': '^57.0.0', 'vitest-native': '^0.14.0', vitest: '^5.1.0' })
+      withDevDeps({ 'vitest-expo': '^58.0.0', 'vitest-native': '^0.15.0', vitest: '^5.1.0' })
     );
     expect(report.missing).not.toContain('vitest-expo');
     expect(report.present).toEqual(expect.arrayContaining(['vitest-expo', 'vitest-native', 'vitest']));

@@ -1,33 +1,17 @@
 /**
  * Output that repeats once per test file without carrying per-file
- * information. Both cases below come from a module registry that is rebuilt for
- * every test file: a once-per-session guard inside the emitting module is once
- * per *file* here, so a 50-file suite prints the same paragraph 50 times.
+ * information. It comes from a module registry that is rebuilt for every test
+ * file: a once-per-session guard inside the emitting module is once per *file*
+ * here, so a 50-file suite prints the same paragraph 50 times.
  *
  * Filtering has to happen in the main process — with test isolation, anything a
  * setup file remembers is forgotten again with the next file — which is what
  * Vitest's onConsoleLog hook is: it sees every intercepted log and can drop it.
- */
-
-/**
- * React Native's entry module exposes moved and deprecated names as getters
- * that warn when read: ProgressBarAndroid, SafeAreaView, Clipboard,
- * InteractionManager, PushNotificationIOS. Building a module namespace for
- * `react-native` reads every export, so importing anything from it triggers all
- * five at once.
  *
- * Under jest-expo none of this appears — everything stays CommonJS there, so no
- * namespace is ever materialized. The notices say nothing about the app under
- * test, and are dropped to keep the two runners' output comparable. Everything
- * else React Native warns about passes through.
+ * React Native's moved/deprecated notices are not filtered: the engine reads
+ * `react-native`'s exports as a test uses them, so a notice appears only where
+ * code reads the deprecated name, as under jest-expo.
  */
-const REACT_NATIVE_NOTICES = [
-  'ProgressBarAndroid has been extracted from react-native core',
-  'SafeAreaView has been deprecated and will be removed in a future release',
-  'Clipboard has been extracted from react-native core',
-  'InteractionManager has been deprecated and will be removed in a future release',
-  'PushNotificationIOS has been extracted from react-native core',
-];
 
 /**
  * The engine reports a package whose Node and Vite resolutions disagree. That is
@@ -63,8 +47,6 @@ export function consoleNoiseFilter(
       const verdict = existing(log, type);
       if (verdict === false) return false;
     }
-
-    if (REACT_NATIVE_NOTICES.some((notice) => log.startsWith(notice))) return false;
 
     if (
       silenced.some((pattern) =>

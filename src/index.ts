@@ -33,10 +33,12 @@ export interface VitestExpoOptions {
    */
   jestCompat?: boolean;
   /**
-   * node_modules packages that ship untranspiled JSX/Flow in .js files but are
-   * not auto-detected (e.g. they declare react-native only as a peer
-   * dependency). The equivalent of extending Jest's transformIgnorePatterns
-   * allowlist — handed to the engine's Node-side transform.
+   * node_modules packages that ship Metro-only source (Flow in .js files,
+   * typically) but are not auto-detected (e.g. they declare react-native only
+   * as a peer dependency). JSX alone needs no entry: the engine compiles a
+   * package file as JSX when Vite's parser rejects it. The equivalent of
+   * extending Jest's transformIgnorePatterns allowlist — handed to the
+   * engine's Node-side transform.
    */
   transformPackages?: string[];
   /**
@@ -116,15 +118,20 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
       // once the engine is initialized. Plugin-returned arrays are appended
       // AFTER user entries by Vite's config merge, so reorder by mutation:
       // vitest-native's injected setup (already merged at this point, our
-      // plugin runs after it) → jest-compat → vitest-expo → user setups.
+      // plugin runs after it) → jest-compat → the project's root __mocks__ →
+      // vitest-expo → user setups. The root-mocks module registers its mocks
+      // with jest-compat's per-file registry, so it has to follow the setup
+      // that resets that registry, not precede it.
       const existing = normalizeSetupFiles((userConfig as any).test?.setupFiles);
-      const engine = existing.filter((f) => f.includes('vitest-native'));
+      const rootMocks = existing.filter(isRootMocksModule);
+      const engine = existing.filter((f) => f.includes('vitest-native') && !isRootMocksModule(f));
       const project = existing.filter((f) => !f.includes('vitest-native'));
       (userConfig as any).test = {
         ...(userConfig as any).test,
         setupFiles: [
           ...engine,
           ...(jestCompat ? [jestCompatSetup] : []),
+          ...rootMocks,
           'vitest-expo/setup',
           ...project,
         ],
@@ -163,7 +170,9 @@ export function vitestExpo(options: VitestExpoOptions = {}): Plugin[] {
     svgComponents,
     rn,
     ...(jestCompat ? [jestMockTransform()] : []),
-    syntaxCompatPlugin(),
+    // Flow is the engine's: it compiles project source that needs Babel with
+    // the project's Babel config.
+    syntaxCompatPlugin({ flow: false }),
     expoPlugin,
   ].flat();
 }
@@ -208,13 +217,18 @@ function webPlugins(jestCompat: boolean, noise: ConsoleNoiseOptions, svgComponen
     config(userConfig) {
       const root = userConfig.root ?? process.cwd();
       warnOnSdkMismatch(root);
+      // The web setup first: it maps `react-native` to react-native-web for
+      // Node's require, and the jest-compat setup already requires it. The
+      // root-mocks module follows jest-compat, as on native.
       const existing = normalizeSetupFiles((userConfig as any).test?.setupFiles);
+      const rootMocks = existing.filter(isRootMocksModule);
       (userConfig as any).test = {
         ...(userConfig as any).test,
         setupFiles: [
-          ...(jestCompat ? [jestCompatSetup] : []),
           'vitest-expo/setup-web',
-          ...existing,
+          ...(jestCompat ? [jestCompatSetup] : []),
+          ...rootMocks,
+          ...existing.filter((f) => !isRootMocksModule(f)),
         ],
       };
       return {
@@ -263,7 +277,13 @@ function webPlugins(jestCompat: boolean, noise: ConsoleNoiseOptions, svgComponen
     },
   };
 
-  return [svgComponents, ...(jestCompat ? [jestMockTransform()] : []), syntaxCompatPlugin(), webPlugin];
+  return [
+    svgComponents,
+    ...(jestCompat ? [jestMockTransform()] : []),
+    // No engine on web, so Flow is stripped here.
+    syntaxCompatPlugin({ flow: true }),
+    webPlugin,
+  ];
 }
 
 /**
@@ -304,6 +324,15 @@ function warnOnSdkMismatch(root: string): void {
   } catch (error) {
     debug('sdk-check', 'could not compare the Expo SDK version', error);
   }
+}
+
+/**
+ * The setup module jestMockTransform() generates for Jest's automatic manual
+ * mocks of installed packages (a root `__mocks__/<pkg>` file applies without a
+ * `jest.mock` call). It exists only as a module id in the project root.
+ */
+function isRootMocksModule(file: string): boolean {
+  return /(?:^|[\\/])vitest-native\.root-mocks\.mjs$/.test(file);
 }
 
 function normalizeSetupFiles(value: unknown): string[] {
